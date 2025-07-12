@@ -2,10 +2,9 @@ from flask import Flask, request, jsonify
 from youtube import get_music_info
 from misc import generate_otp, create_jwt
 import misc
-from db import *
+import db
 import jwt
 from flask_socketio import SocketIO, emit, join_room, leave_room
-import db
 from flask_cors import CORS
 from dotenv import load_dotenv
 import os
@@ -28,23 +27,29 @@ def search(query):
 
 @app.post('/send-otp')
 def send_otp():
+    if not request.json:
+        return jsonify({"message": "No JSON data provided"}), 400
     email = request.json.get('email')
     otp = generate_otp()
     misc.send_otp(email, otp)
-    store_otp(email, otp)
+    db.store_otp(email, otp)
     return jsonify({"message": "OTP sent successfully"}), 200
 
 @app.post('/login')
 def login():
+    if not request.json:
+        return jsonify({"message": "No JSON data provided"}), 400
     email = request.json.get('email')
     otp = request.json.get('otp')
-    if verify_otp(email, otp):
+    if db.verify_otp(email, otp):
         return jsonify({"message": "OTP verified successfully", "jwt": create_jwt(email)}), 200
     else:
         return jsonify({"message": "Invalid OTP"}), 400
 
 @app.post('/exists')
 def exists():
+    if not request.json:
+        return jsonify({"authenticated": False}), 200
     user_jwt = request.json.get('jwt')
     if user_jwt:
         try:
@@ -53,13 +58,15 @@ def exists():
             return jsonify({"authenticated": False}), 200
     else:
         return jsonify({"authenticated": False}), 200
-    if find_email(email):
+    if db.find_email(email):
         return jsonify({"exists": True}), 200
     else:
         return jsonify({"exists": False}), 200
 
 @app.post('/create-signup')
 def signup():
+    if not request.json:
+        return jsonify({"message": "No JSON data provided"}), 400
     user_jwt = request.json.get('jwt')
     username = request.json.get('username')
     if user_jwt:
@@ -70,19 +77,21 @@ def signup():
     else:
         return jsonify({"authenticated": False}), 200
     
-    if find_email(email):
+    if db.find_email(email):
         return jsonify({"status": "User already exists"}), 200
     
-    if find_username(username):
+    if db.find_username(username):
         return jsonify({"status": "Username already exists"}), 200
     
-    if create_account(email, username):
+    if db.create_account(email, username):
         return jsonify({"status": "Account created successfully"}), 200
     else:
         return jsonify({"status": "Account creation failed"}), 200
 
 @app.post('/create-room')
 def create_room_route():
+    if not request.json:
+        return jsonify({"message": "No JSON data provided"}), 400
     user_jwt = request.json.get('jwt')
     if user_jwt:
         try:
@@ -91,8 +100,8 @@ def create_room_route():
             return jsonify({"authenticated": False}), 200
     else:
         return jsonify({"authenticated": False}), 200
-    
-    code = create_room(email)
+    max_downvotes = request.json.get('max_downvotes')
+    code = db.create_room(email, max_downvotes)
     if code:
         return jsonify({"status": "Room created successfully", "code": code}), 200
     else:
@@ -100,6 +109,8 @@ def create_room_route():
 
 @app.post('/add-song-to-queue')
 def add_song_to_queue():
+    if not request.json:
+        return jsonify({"message": "No JSON data provided"}), 400
     room = request.json.get('room')
     song = request.json.get('song')
     jwt_token = request.json.get('jwt')
@@ -112,6 +123,8 @@ def add_song_to_queue():
 
 @app.post('/remove-song-from-queue')
 def remove_song_from_queue():
+    if not request.json:
+        return jsonify({"message": "No JSON data provided"}), 400
     room = request.json.get('room')
     song = request.json.get('song')
     jwt_token = request.json.get('jwt')
@@ -124,36 +137,49 @@ def remove_song_from_queue():
 
 @app.post('/next-song')
 def next_song():
+    if not request.json:
+        return jsonify({"message": "No JSON data provided"}), 400
     room = request.json.get('room')
     if db.next_song(room):
         socketio.emit('delete_head_song', {}, room=room)
-        socketio.emit('current_song', {"song": db.get_current_song(room)}, room=room)
+        room_data = db.get_room_by_code(room)
+        if room_data:
+            current_song = room_data.get("current_song", {})
+            socketio.emit('current_song', {"song": current_song}, room=room)
         return jsonify({"status": "Song skipped"}), 200
     else:
         return jsonify({"status": "Song skipping failed"}), 200
 
 @app.post('/get-queue')
 def get_queue():
+    if not request.json:
+        return jsonify({"message": "No JSON data provided"}), 400
     room = request.json.get('room')
     jwt_token = request.json.get('jwt')
     email = jwt.decode(jwt_token, os.getenv('JWT_SECRET', 'secret'), algorithms=[os.getenv('JWT_ALGORITHM', 'HS256')])["email"]
-    if db.get_queue(room, email):
-        return jsonify({"status": "Queue retrieved"}), 200
+    queue = db.get_queue(room, email)
+    if queue is not False:
+        return jsonify({"status": "Queue retrieved", "queue": queue}), 200
     else:
         return jsonify({"status": "Queue retrieval failed"}), 200
 
 @app.post('/get-current-song')
 def get_current_song():
+    if not request.json:
+        return jsonify({"message": "No JSON data provided"}), 400
     room = request.json.get('room')
     jwt_token = request.json.get('jwt')
     email = jwt.decode(jwt_token, os.getenv('JWT_SECRET', 'secret'), algorithms=[os.getenv('JWT_ALGORITHM', 'HS256')])["email"]
-    if db.get_current_song(room, email):
-        return jsonify({"status": "Current song retrieved"}), 200
+    current_song = db.get_current_song(room, email)
+    if current_song is not False:
+        return jsonify({"status": "Current song retrieved", "song": current_song}), 200
     else:
         return jsonify({"status": "Current song retrieval failed"}), 200
 
 @app.post('/add-downvote')
 def add_downvote():
+    if not request.json:
+        return jsonify({"message": "No JSON data provided"}), 400
     room = request.json.get('room')
     song = request.json.get('song')
     jwt_token = request.json.get('jwt')
@@ -192,21 +218,13 @@ def handle_join_room(data):
 def handle_leave_room(data):
     jwt_token = data['jwt']
     email = jwt.decode(jwt_token, os.getenv('JWT_SECRET', 'secret'), algorithms=[os.getenv('JWT_ALGORITHM', 'HS256')])["email"]
-    room = get_room_by_email(email)["code"]
-    if db.leave_room(email):
-        leave_room(room)
-        emit('server_message', {'message': f'Left room {room}'}, to=request.sid)
+    room_data = db.get_room_by_email(email)
+    if room_data:
+        room = room_data["code"]
+        if db.leave_room(email):
+            leave_room(room)
+            emit('server_message', {'message': f'Left room {room}'},to=request.sid)
+        else:
+            emit('server_message', {'message': f'You are not in room {room}'},to=request.sid)
     else:
-        emit('server_message', {'message': f'You are not in room {room}'}, to=request.sid)
-
-
-
-
-
-if __name__ == '__main__':
-    socketio.run(
-        app, 
-        debug=os.getenv('FLASK_DEBUG', 'True').lower() == 'true',
-        port=int(os.getenv('FLASK_PORT', '5000')),
-        host=os.getenv('FLASK_HOST', '0.0.0.0')
-    )
+        emit('server_message', {'message': 'You are not in any room'},to=request.sid)

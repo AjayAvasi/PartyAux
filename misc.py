@@ -3,7 +3,7 @@ import smtplib
 from email.mime.text import MIMEText
 import jwt
 from datetime import datetime
-from db import room_exists
+import db
 from dotenv import load_dotenv
 import os
 
@@ -55,7 +55,7 @@ def create_jwt(email):
 
 def create_room_code():
     code = ''.join(random.choices('0123456789', k=6))
-    while room_exists(code):
+    while db.room_exists(code):
         code = ''.join(random.choices('0123456789', k=6))
     return code
 

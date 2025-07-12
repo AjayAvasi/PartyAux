@@ -96,9 +96,9 @@ def create_account(email, username):
 def room_exists(code):
     return get_room_by_code(code)
 
-def create_room(email):
+def create_room(email, max_downvotes):
     code = misc.create_room_code()
-    create_document({"code": code, "host": email, "created_at": datetime.now(), "current_song": {}, "queue": [], "users": []}, "Rooms")
+    create_document({"code": code, "host": email, "created_at": datetime.now(), "current_song": {}, "queue": [], "users": [], "max_downvotes": max_downvotes}, "Rooms")
     return code
 
 def get_room_size(code):
@@ -189,9 +189,13 @@ def add_downvote(code, song_id, email):
         return -1
     if room["current_song"]["url"] == song_id and email not in room["current_song"]["downvotes"]:
         add_to_array("Rooms", {"code": code, "current_song.url": song_id}, {"current_song.$.downvotes": email})
+        if len(room["current_song"]["downvotes"]) >= room["max_downvotes"]:
+            next_song(code)
         return len(room["current_song"]["downvotes"])
     for song in room["queue"]:
         if song["url"] == song_id and email not in song["downvotes"]:
             add_to_array("Rooms", {"code": code, "queue.url": song_id}, {"queue.$.downvotes": email})
+            if len(song["downvotes"]) >= room["max_downvotes"]:
+                pull_from_array("Rooms", {"code": code, "queue.url": song_id}, {"queue.$.downvotes": email})
             return len(song["downvotes"])
     return -1
