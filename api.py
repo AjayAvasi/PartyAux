@@ -140,7 +140,11 @@ def next_song():
     if not request.json:
         return jsonify({"message": "No JSON data provided"}), 400
     room = request.json.get('room')
-    if db.next_song(room):
+    jwt_token = request.json.get('jwt')
+    email = jwt.decode(jwt_token, os.getenv('JWT_SECRET', 'secret'), algorithms=[os.getenv('JWT_ALGORITHM', 'HS256')])["email"]
+    if not email:
+        return jsonify({"status": "User not authenticated"}), 401
+    if db.next_song(room, email):
         socketio.emit('delete_head_song', {}, room=room)
         room_data = db.get_room_by_code(room)
         if room_data:
