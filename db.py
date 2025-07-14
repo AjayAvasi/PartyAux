@@ -149,14 +149,18 @@ def remove_song_from_queue(code, song_id, email):
         return True
     return False
 
-def next_song(code):
+def next_song(code, email):
     room = get_room_by_code(code)
     if not room:
         return False
+    if email not in room["users"]:
+        return False
+    
     if len(room["queue"]) != 0:
         update_document("Rooms", {"code": code}, {"current_song": room["queue"][0]})
         pull_from_array("Rooms", {"code": code}, {"queue": room["queue"][0]})
-    update_document("Rooms", {"code": code}, {"current_song": {}})
+    else:
+        update_document("Rooms", {"code": code}, {"current_song": {}})
     return True
 
 def get_queue(code, email):
