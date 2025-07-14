@@ -172,7 +172,7 @@ def get_current_song():
     email = jwt.decode(jwt_token, os.getenv('JWT_SECRET', 'secret'), algorithms=[os.getenv('JWT_ALGORITHM', 'HS256')])["email"]
     current_song = db.get_current_song(room, email)
     if current_song is not False and current_song is not None:
-        return jsonify({"status": "Current song retrieved", "song": current_song}), 200
+        return jsonify({"status": "Current song retrieved. Should receive song", "song": current_song}), 200
     else:
         return jsonify({"status": "Current song retrieval failed"}), 200
 
