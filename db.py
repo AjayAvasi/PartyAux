@@ -130,11 +130,12 @@ def add_song_to_queue(code, song, email):
     room = get_room_by_code(code)
     if email not in room["users"]:
         return False
+    song["added_by"] = get_username_by_email(email)
+    song["downvotes"] = []
     if room["current_song"] == {}:
         update_document("Rooms", {"code": code}, {"current_song": song})
         return True
-    song["added_by"] = get_username_by_email(email)
-    song["downvotes"] = []
+    
     if not room:
         return False
     add_to_array("Rooms", {"code": code}, {"queue": song})
@@ -203,3 +204,12 @@ def add_downvote(code, song_id, email):
                 pull_from_array("Rooms", {"code": code, "queue.url": song_id}, {"queue.$.downvotes": email})
             return len(song["downvotes"])
     return -1
+
+def get_room_info(code, email):
+
+    room = get_room_by_code(code)
+    if not room:
+        return None
+    if email not in room["users"]:
+        return None
+    return room

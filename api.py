@@ -195,6 +195,19 @@ def add_downvote():
     else:
         return jsonify({"status": "Downvote addition failed"}), 200
 
+@app.post('/get-room-info')
+def get_room_info():
+    if not request.json:
+        return jsonify({"message": "No JSON data provided"}), 400
+    room = request.json.get('room')
+    jwt_token = request.json.get('jwt')
+    email = jwt.decode(jwt_token, os.getenv('JWT_SECRET', 'secret'), algorithms=[os.getenv('JWT_ALGORITHM', 'HS256')])["email"]
+    room_info = db.get_room_info(room, email)
+    if room_info is not None:
+        return jsonify({"status": "Room info retrieved", "room_info": room_info}), 200
+    else:
+        return jsonify({"status": "Room info retrieval failed"}), 200
+
 
 
 @socketio.on('connect')
@@ -232,4 +245,3 @@ def handle_leave_room(data):
             emit('server_message', {'message': f'You are not in room {room}'},to=request.sid)
     else:
         emit('server_message', {'message': 'You are not in any room'},to=request.sid)
-
