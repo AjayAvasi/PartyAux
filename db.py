@@ -107,11 +107,12 @@ def get_room_size(code):
 
 def join_room(code, email):
     room = get_room_by_code(code)
+    if email in room["users"]:
+        return True
     leave_room(email)
     if not room:
         return False
-    if email in room["users"]:
-        return False
+    
     add_to_array("Rooms", {"code": code}, {"users": email})
     return True
 
