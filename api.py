@@ -241,6 +241,7 @@ def handle_leave_room(data):
         if db.leave_room(email):
             leave_room(room)
             emit('server_message', {'message': f'Left room {room}'},to=request.sid)
+            emit('someone_left', {'room': room, 'email': email}, room=room)
         else:
             emit('server_message', {'message': f'You are not in room {room}'},to=request.sid)
     else:
