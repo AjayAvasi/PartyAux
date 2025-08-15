@@ -5,6 +5,9 @@ from bson import ObjectId
 import misc
 from dotenv import load_dotenv
 import os
+from bson import json_util
+import json
+
 
 # Load environment variables
 load_dotenv()
@@ -213,4 +216,5 @@ def get_room_info(code, email):
         return None
     if email not in room["users"]:
         return None
+    room = json.loads(json_util.dumps(room))
     return room
