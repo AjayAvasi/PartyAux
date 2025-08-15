@@ -228,6 +228,7 @@ def handle_join_room(data):
     if db.join_room(room, email):
         join_room(room)
         emit('server_message', {'message': f'Joined room {room}'}, to=request.sid)
+        emit('someone_joined', {'room': room, 'email': email}, room=room)
     else:
         emit('server_message', {'message': f'You are not in room {room}'}, to=request.sid)
 
