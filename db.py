@@ -217,6 +217,6 @@ def get_room_info(code, email):
     if email not in room["users"]:
         return None
     room = json.loads(json_util.dumps(room))
-    room["room_info"]["host"] = { "email": room["host"], "username": get_username_by_email(room["host"]) }
-    room["room_info"]["users"] = [{"email": user, "username": get_username_by_email(user)} for user in room["users"]]
+    room["host"] = { "email": room["host"], "username": get_username_by_email(room["host"]) }
+    room["users"] = [{"email": user, "username": get_username_by_email(user)} for user in room["users"]]
     return room
