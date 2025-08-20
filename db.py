@@ -190,7 +190,7 @@ def get_room_by_code(code):
 def get_room_by_email(email):
     return get_document("Rooms", {"users": email})
 
-def add_downvote(code, song_id, email):
+def add_downvote(code, song_id, email, socketio):
     room = get_room_by_code(code)
     if not room:
         return -1
@@ -200,12 +200,16 @@ def add_downvote(code, song_id, email):
         add_to_array("Rooms", {"code": code, "current_song.url": song_id}, {"current_song.$.downvotes": email})
         if len(room["current_song"]["downvotes"]) >= room["max_downvotes"]:
             next_song(code)
+            room = get_room_by_code(code)
+            socketio.emit('current_song', {"song": room["current_song"]}, room=code)
         return len(room["current_song"]["downvotes"])
     for song in room["queue"]:
         if song["url"] == song_id and email not in song["downvotes"]:
             add_to_array("Rooms", {"code": code, "queue.url": song_id}, {"queue.$.downvotes": email})
             if len(song["downvotes"]) >= room["max_downvotes"]:
                 pull_from_array("Rooms", {"code": code, "queue.url": song_id}, {"queue.$.downvotes": email})
+                queue_index = room["queue"].index(song)
+                socketio.emit('delete_song_from_queue', {"index": queue_index}, room=code)
             return len(song["downvotes"])
     return -1
 

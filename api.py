@@ -188,7 +188,7 @@ def add_downvote():
     song = request.json.get('song')
     jwt_token = request.json.get('jwt')
     email = jwt.decode(jwt_token, os.getenv('JWT_SECRET', 'secret'), algorithms=[os.getenv('JWT_ALGORITHM', 'HS256')])["email"]
-    downvotes = db.add_downvote(room, song, email)
+    downvotes = db.add_downvote(room, song, email, socketio)
     if downvotes != -1:
         socketio.emit('downvote', {'song': song, 'downvotes': downvotes}, room=room)
         return jsonify({"status": "Downvote added"}), 200
