@@ -7,6 +7,7 @@ from dotenv import load_dotenv
 import os
 from bson import json_util
 import json
+from uuid import uuid4
 
 
 # Load environment variables
@@ -136,6 +137,7 @@ def add_song_to_queue(code, song, email):
         return False
     song["added_by"] = get_username_by_email(email)
     song["downvotes"] = []
+    song["uuid"] = str(uuid4())
     if room["current_song"] == {}:
         update_document("Rooms", {"code": code}, {"current_song": song})
         return True
@@ -150,7 +152,7 @@ def remove_song_from_queue(code, song_id, email):
     if not room:
         return False
     if room["host"] == email:
-        pull_from_array("Rooms", {"code": code}, {"queue": {"url": song_id}})
+        pull_from_array("Rooms", {"code": code}, {"queue": {"uuid": song_id}})
         return True
     return False
 
@@ -196,21 +198,26 @@ def add_downvote(code, song_id, email, socketio):
         return -1
     if email not in room["users"]:
         return -1
-    if room["current_song"]["url"] == song_id and email not in room["current_song"]["downvotes"]:
-        add_to_array("Rooms", {"code": code, "current_song.url": song_id}, {"current_song.$.downvotes": email})
+    if room["current_song"].get("uuid") == song_id and email not in room["current_song"].get("downvotes", []):
+        add_to_array("Rooms", {"code": code, "current_song.uuid": song_id}, {"current_song.$.downvotes": email})
+        # Get updated room to check current downvote count
+        room = get_room_by_code(code)
         if len(room["current_song"]["downvotes"]) >= room["max_downvotes"]:
-            next_song(code)
+            next_song(code, email)
             room = get_room_by_code(code)
             socketio.emit('current_song', {"song": room["current_song"]}, room=code)
         return len(room["current_song"]["downvotes"])
     for song in room["queue"]:
-        if song["url"] == song_id and email not in song["downvotes"]:
-            add_to_array("Rooms", {"code": code, "queue.url": song_id}, {"queue.$.downvotes": email})
-            if len(song["downvotes"]) >= room["max_downvotes"]:
-                pull_from_array("Rooms", {"code": code, "queue.url": song_id}, {"queue.$.downvotes": email})
-                queue_index = room["queue"].index(song)
-                socketio.emit('delete_song_from_queue', {"index": queue_index}, room=code)
-            return len(song["downvotes"])
+        if song["uuid"] == song_id and email not in song["downvotes"]:
+            add_to_array("Rooms", {"code": code, "queue.uuid": song_id}, {"queue.$.downvotes": email})
+            # Get updated room to check current downvote count
+            room = get_room_by_code(code)
+            # Find the updated song in the queue
+            updated_song = next((s for s in room["queue"] if s["uuid"] == song_id), None)
+            if updated_song and len(updated_song["downvotes"]) >= room["max_downvotes"]:
+                pull_from_array("Rooms", {"code": code}, {"queue": {"uuid": song_id}})
+                socketio.emit('delete_song_from_queue', {"uuid": song_id}, room=code)
+            return len(updated_song["downvotes"]) if updated_song else 0
     return -1
 
 def get_room_info(code, email):
