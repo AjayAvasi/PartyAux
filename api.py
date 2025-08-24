@@ -207,8 +207,20 @@ def get_room_info():
         return jsonify({"status": "Room info retrieved", "room_info": room_info}), 200
     else:
         return jsonify({"status": "Room info retrieval failed"}), 200
+    
 
-
+@app.post('/change-max-downvotes')
+def change_max_downvotes():
+    if not request.json:
+        return jsonify({"message": "No JSON data provided"}), 400
+    room = request.json.get('room')
+    max_downvotes = request.json.get('max_downvotes')
+    jwt_token = request.json.get('jwt')
+    email = jwt.decode(jwt_token, os.getenv('JWT_SECRET', 'secret'), algorithms=[os.getenv('JWT_ALGORITHM', 'HS256')])["email"]
+    if db.change_max_downvotes(room, max_downvotes, email):
+        return jsonify({"status": "Max downvotes changed"}), 200
+    else:
+        return jsonify({"status": "Max downvotes change failed"}), 200
 
 @socketio.on('connect')
 def handle_connect():
@@ -247,3 +259,4 @@ def handle_leave_room(data):
             emit('server_message', {'message': f'You are not in room {room}'},to=request.sid)
     else:
         emit('server_message', {'message': 'You are not in any room'},to=request.sid)
+

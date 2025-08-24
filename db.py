@@ -231,3 +231,13 @@ def get_room_info(code, email):
     room["host"] = { "email": room["host"], "username": get_username_by_email(room["host"]) }
     room["users"] = [{"email": user, "username": get_username_by_email(user)} for user in room["users"]]
     return room
+
+
+def change_max_downvotes(code, max_downvotes, email):
+    room = get_room_by_code(code)
+    if not room:
+        return False
+    if email != room["host"]:
+        return False
+    update_document("Rooms", {"code": code}, {"max_downvotes": max_downvotes})
+    return True
