@@ -128,7 +128,7 @@ def leave_room(email):
     if get_room_size(room["code"]) == 0:
         delete_document("Rooms", {"code": room["code"]})
     elif room["host"] == email:
-        update_document("Rooms", {"code": room["code"]}, {"host": room["users"][0]})
+        update_document("Rooms", {"code": room["code"]}, {"host": room["users"][1]})
     return True
 
 def add_song_to_queue(code, song, email):
