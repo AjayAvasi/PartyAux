@@ -8,7 +8,6 @@ from flask_socketio import SocketIO, emit, join_room, leave_room
 from flask_cors import CORS
 from dotenv import load_dotenv
 import os
-from uuid import UUID
 
 # Load environment variables
 load_dotenv()
@@ -16,13 +15,6 @@ load_dotenv()
 app = Flask(__name__)
 CORS(app)
 socketio = SocketIO(app, cors_allowed_origins=os.getenv('CORS_ALLOWED_ORIGINS', '*'))
-
-def validate_uuid(uuid_string):
-    """Validate and convert string to UUID object"""
-    try:
-        return UUID(uuid_string)
-    except (ValueError, TypeError):
-        return None
 
 
 @app.route('/')
@@ -155,16 +147,8 @@ def remove_song_from_queue():
     if not song_uuid:
         return jsonify({"message": "Song UUID required"}), 400
     
-    # Validate UUID format
-    validated_uuid = validate_uuid(song_uuid)
-    if not validated_uuid:
-        return jsonify({"message": "Invalid song UUID format"}), 400
-    
-    # Convert back to string since db function expects string
-    song_uuid_str = str(validated_uuid)
-    
-    if db.remove_song_from_queue(room, song_uuid_str, email):
-        socketio.emit('remove_song', {'song': song_uuid_str}, room=room)
+    if db.remove_song_from_queue(room, song_uuid, email):
+        socketio.emit('remove_song', {'song': song_uuid}, room=room)
         return jsonify({"status": "Song removed from queue"}), 200
     else:
         return jsonify({"status": "Song removal failed"}), 200
@@ -236,17 +220,9 @@ def add_downvote():
     if not song_uuid:
         return jsonify({"message": "Song UUID required"}), 400
     
-    # Validate UUID format
-    validated_uuid = validate_uuid(song_uuid)
-    if not validated_uuid:
-        return jsonify({"message": "Invalid song UUID format"}), 400
-    
-    # Convert back to string since db function expects string
-    song_uuid_str = str(validated_uuid)
-    
-    downvotes = db.add_downvote(room, song_uuid_str, email, socketio)
+    downvotes = db.add_downvote(room, song_uuid, email, socketio)
     if downvotes != -1:
-        socketio.emit('downvote', {'song': song_uuid_str, 'downvotes': downvotes}, room=room)
+        socketio.emit('downvote', {'song': song_uuid, 'downvotes': downvotes}, room=room)
         return jsonify({"status": "Downvote added", "downvotes": downvotes}), 200
     else:
         return jsonify({"status": "Downvote addition failed"}), 200
@@ -320,11 +296,7 @@ def get_playlist_info():
     if not playlist_id:
         return jsonify({"message": "Playlist ID required"}), 400
     
-    playlist_uuid = validate_uuid(playlist_id)
-    if not playlist_uuid:
-        return jsonify({"message": "Invalid playlist ID format"}), 400
-    
-    playlist_info = db.get_playlist_info(playlist_uuid)
+    playlist_info = db.get_playlist_info(playlist_id)
     if playlist_info:
         # Convert UUID to string for JSON serialization
         playlist_info = dict(playlist_info)
@@ -378,11 +350,7 @@ def update_playlist():
     if songs is None:
         return jsonify({"message": "Songs array required"}), 400
     
-    playlist_uuid = validate_uuid(playlist_id)
-    if not playlist_uuid:
-        return jsonify({"message": "Invalid playlist ID format"}), 400
-    
-    if db.update_playlist(email, playlist_uuid, songs):
+    if db.update_playlist(email, playlist_id, songs):
         return jsonify({"status": "Playlist updated successfully"}), 200
     else:
         return jsonify({"status": "Playlist update failed"}), 500
@@ -409,11 +377,7 @@ def change_playlist_visibility():
     if public is None:
         return jsonify({"message": "Public visibility flag required"}), 400
     
-    playlist_uuid = validate_uuid(playlist_id)
-    if not playlist_uuid:
-        return jsonify({"message": "Invalid playlist ID format"}), 400
-    
-    if db.change_playlist_visibility(email, playlist_uuid, public):
+    if db.change_playlist_visibility(email, playlist_id, public):
         return jsonify({"status": "Playlist visibility changed successfully"}), 200
     else:
         return jsonify({"status": "Playlist visibility change failed or access denied"}), 403
