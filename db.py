@@ -268,7 +268,7 @@ def change_playlist_visibility(email, playlist_id, public):
     update_document("Playlists", {"playlist_id": playlist_id, "owner": email}, {"public": public})
     return True
 
-def search_playlist(query):
+def search_playlists(query):
    playlist_collection = db["Playlists"]
    pipeline = [
     {
@@ -296,11 +296,11 @@ def search_playlist(query):
     },
     {
         "$project": {
-            "name": 5,
+            "name": 1,
             "owner": 1,
             "owner_username": 1,
             "public": 1,
-            "score": { "$meta": "searchScore" }
+            "songs": 1
         }
     },
     { "$sort": { "score": -1 } },

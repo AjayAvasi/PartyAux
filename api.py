@@ -29,6 +29,14 @@ def search(query):
 def search_suggestions(query):
     return jsonify({"input": query, "suggestions": get_search_suggestion(query)})
 
+@app.get('/search-playlists/<playlist_name>')
+def search_playlists(playlist_name):
+    playlists = db.search_playlists(playlist_name)
+    for playlist in playlists:
+        playlist['_id'] = str(playlist['_id'])
+    return jsonify({"status": "Playlists retrieved", "playlists": playlists}), 200
+
+
 @app.post('/send-otp')
 def send_otp():
     if not request.json:
@@ -382,12 +390,6 @@ def change_playlist_visibility():
     else:
         return jsonify({"status": "Playlist visibility change failed or access denied"}), 403
 
-@app.get('/search-playlist/<playlist_name>')
-def search_playlist(playlist_name):
-    playlists = db.search_playlist(playlist_name)
-    for playlist in playlists:
-        playlist['_id'] = str(playlist['_id'])
-    return jsonify({"status": "Playlists retrieved", "playlists": playlists}), 200
 
 @socketio.on('connect')
 def handle_connect():
