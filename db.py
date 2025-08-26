@@ -241,3 +241,33 @@ def change_max_downvotes(code, max_downvotes, email):
         return False
     update_document("Rooms", {"code": code}, {"max_downvotes": max_downvotes})
     return True
+
+
+def create_playlist(name, email):
+    playlist_id = uuid4()
+    while get_document("Playlists", {"playlist_id": playlist_id}):
+        playlist_id = uuid4()
+    create_document({"_id": playlist_id, "name": name, "owner": email, "songs": [], "public": False, "playlist_id": playlist_id}, "Playlists")
+    return playlist_id
+
+def get_playlist_info(playlist_id):
+    return get_document("Playlists", {"playlist_id": playlist_id})
+
+def get_user_playlists(email):
+    playlist_ids = get_documents("Playlists", {"owner": email})
+    return [playlist["playlist_id"] for playlist in playlist_ids]
+
+def update_playlist(email, playlist_id, songs):
+    update_document("Playlists", {"playlist_id": playlist_id, "owner": email}, {"songs": songs})
+    return True
+
+def change_playlist_visibility(email, playlist_id, public):
+    playlist = get_playlist_info(playlist_id)
+    if not playlist:
+        return False
+    if email != playlist["owner"]:
+        return False
+    update_document("Playlists", {"playlist_id": playlist_id, "owner": email}, {"public": public})
+    return True
+
+create_playlist("The Best Songs", "ajaydavasi@gmail.com")

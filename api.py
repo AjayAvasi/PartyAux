@@ -8,6 +8,7 @@ from flask_socketio import SocketIO, emit, join_room, leave_room
 from flask_cors import CORS
 from dotenv import load_dotenv
 import os
+from uuid import UUID
 
 # Load environment variables
 load_dotenv()
@@ -15,6 +16,13 @@ load_dotenv()
 app = Flask(__name__)
 CORS(app)
 socketio = SocketIO(app, cors_allowed_origins=os.getenv('CORS_ALLOWED_ORIGINS', '*'))
+
+def validate_uuid(uuid_string):
+    """Validate and convert string to UUID object"""
+    try:
+        return UUID(uuid_string)
+    except (ValueError, TypeError):
+        return None
 
 
 @app.route('/')
@@ -130,11 +138,33 @@ def remove_song_from_queue():
     if not request.json:
         return jsonify({"message": "No JSON data provided"}), 400
     room = request.json.get('room')
-    song = request.json.get('song')
+    song_uuid = request.json.get('song_uuid')
     jwt_token = request.json.get('jwt')
-    email = jwt.decode(jwt_token, os.getenv('JWT_SECRET', 'secret'), algorithms=[os.getenv('JWT_ALGORITHM', 'HS256')])["email"]
-    if db.remove_song_from_queue(room, song, email):
-        socketio.emit('remove_song', {'song': song}, room=room)
+    
+    if not jwt_token:
+        return jsonify({"message": "JWT token required"}), 401
+    
+    try:
+        email = jwt.decode(jwt_token, os.getenv('JWT_SECRET', 'secret'), algorithms=[os.getenv('JWT_ALGORITHM', 'HS256')])["email"]
+    except jwt.InvalidTokenError:
+        return jsonify({"message": "Invalid JWT token"}), 401
+    
+    if not room:
+        return jsonify({"message": "Room code required"}), 400
+    
+    if not song_uuid:
+        return jsonify({"message": "Song UUID required"}), 400
+    
+    # Validate UUID format
+    validated_uuid = validate_uuid(song_uuid)
+    if not validated_uuid:
+        return jsonify({"message": "Invalid song UUID format"}), 400
+    
+    # Convert back to string since db function expects string
+    song_uuid_str = str(validated_uuid)
+    
+    if db.remove_song_from_queue(room, song_uuid_str, email):
+        socketio.emit('remove_song', {'song': song_uuid_str}, room=room)
         return jsonify({"status": "Song removed from queue"}), 200
     else:
         return jsonify({"status": "Song removal failed"}), 200
@@ -189,13 +219,35 @@ def add_downvote():
     if not request.json:
         return jsonify({"message": "No JSON data provided"}), 400
     room = request.json.get('room')
-    song = request.json.get('song')
+    song_uuid = request.json.get('song_uuid')
     jwt_token = request.json.get('jwt')
-    email = jwt.decode(jwt_token, os.getenv('JWT_SECRET', 'secret'), algorithms=[os.getenv('JWT_ALGORITHM', 'HS256')])["email"]
-    downvotes = db.add_downvote(room, song, email, socketio)
+    
+    if not jwt_token:
+        return jsonify({"message": "JWT token required"}), 401
+    
+    try:
+        email = jwt.decode(jwt_token, os.getenv('JWT_SECRET', 'secret'), algorithms=[os.getenv('JWT_ALGORITHM', 'HS256')])["email"]
+    except jwt.InvalidTokenError:
+        return jsonify({"message": "Invalid JWT token"}), 401
+    
+    if not room:
+        return jsonify({"message": "Room code required"}), 400
+    
+    if not song_uuid:
+        return jsonify({"message": "Song UUID required"}), 400
+    
+    # Validate UUID format
+    validated_uuid = validate_uuid(song_uuid)
+    if not validated_uuid:
+        return jsonify({"message": "Invalid song UUID format"}), 400
+    
+    # Convert back to string since db function expects string
+    song_uuid_str = str(validated_uuid)
+    
+    downvotes = db.add_downvote(room, song_uuid_str, email, socketio)
     if downvotes != -1:
-        socketio.emit('downvote', {'song': song, 'downvotes': downvotes}, room=room)
-        return jsonify({"status": "Downvote added"}), 200
+        socketio.emit('downvote', {'song': song_uuid_str, 'downvotes': downvotes}, room=room)
+        return jsonify({"status": "Downvote added", "downvotes": downvotes}), 200
     else:
         return jsonify({"status": "Downvote addition failed"}), 200
 
@@ -225,6 +277,146 @@ def change_max_downvotes():
         return jsonify({"status": "Max downvotes changed"}), 200
     else:
         return jsonify({"status": "Max downvotes change failed"}), 200
+
+@app.post('/create-playlist')
+def create_playlist():
+    if not request.json:
+        return jsonify({"message": "No JSON data provided"}), 400
+    jwt_token = request.json.get('jwt')
+    name = request.json.get('name')
+    
+    if not jwt_token:
+        return jsonify({"message": "JWT token required"}), 401
+    
+    try:
+        email = jwt.decode(jwt_token, os.getenv('JWT_SECRET', 'secret'), algorithms=[os.getenv('JWT_ALGORITHM', 'HS256')])["email"]
+    except jwt.InvalidTokenError:
+        return jsonify({"message": "Invalid JWT token"}), 401
+    
+    if not name:
+        return jsonify({"message": "Playlist name required"}), 400
+    
+    playlist_id = db.create_playlist(name, email)
+    if playlist_id:
+        return jsonify({"status": "Playlist created successfully", "playlist_id": str(playlist_id)}), 200
+    else:
+        return jsonify({"status": "Playlist creation failed"}), 500
+
+@app.post('/get-playlist-info')
+def get_playlist_info():
+    if not request.json:
+        return jsonify({"message": "No JSON data provided"}), 400
+    jwt_token = request.json.get('jwt')
+    playlist_id = request.json.get('playlist_id')
+    
+    if not jwt_token:
+        return jsonify({"message": "JWT token required"}), 401
+    
+    try:
+        email = jwt.decode(jwt_token, os.getenv('JWT_SECRET', 'secret'), algorithms=[os.getenv('JWT_ALGORITHM', 'HS256')])["email"]
+    except jwt.InvalidTokenError:
+        return jsonify({"message": "Invalid JWT token"}), 401
+    
+    if not playlist_id:
+        return jsonify({"message": "Playlist ID required"}), 400
+    
+    playlist_uuid = validate_uuid(playlist_id)
+    if not playlist_uuid:
+        return jsonify({"message": "Invalid playlist ID format"}), 400
+    
+    playlist_info = db.get_playlist_info(playlist_uuid)
+    if playlist_info:
+        # Convert UUID to string for JSON serialization
+        playlist_info = dict(playlist_info)
+        playlist_info['playlist_id'] = str(playlist_info['playlist_id'])
+        playlist_info['_id'] = str(playlist_info['_id'])
+        
+        # Check if user has access to this playlist
+        if playlist_info['owner'] == email or playlist_info['public']:
+            return jsonify({"status": "Playlist info retrieved", "playlist": playlist_info}), 200
+        else:
+            return jsonify({"message": "Access denied"}), 403
+    else:
+        return jsonify({"message": "Playlist not found"}), 404
+
+@app.post('/get-user-playlists')
+def get_user_playlists():
+    if not request.json:
+        return jsonify({"message": "No JSON data provided"}), 400
+    jwt_token = request.json.get('jwt')
+    
+    if not jwt_token:
+        return jsonify({"message": "JWT token required"}), 401
+    
+    try:
+        email = jwt.decode(jwt_token, os.getenv('JWT_SECRET', 'secret'), algorithms=[os.getenv('JWT_ALGORITHM', 'HS256')])["email"]
+    except jwt.InvalidTokenError:
+        return jsonify({"message": "Invalid JWT token"}), 401
+    
+    playlist_ids = db.get_user_playlists(email)
+    return jsonify({"status": "User playlists retrieved", "playlist_ids": playlist_ids}), 200
+
+@app.post('/update-playlist')
+def update_playlist():
+    if not request.json:
+        return jsonify({"message": "No JSON data provided"}), 400
+    jwt_token = request.json.get('jwt')
+    playlist_id = request.json.get('playlist_id')
+    songs = request.json.get('songs')
+    
+    if not jwt_token:
+        return jsonify({"message": "JWT token required"}), 401
+    
+    try:
+        email = jwt.decode(jwt_token, os.getenv('JWT_SECRET', 'secret'), algorithms=[os.getenv('JWT_ALGORITHM', 'HS256')])["email"]
+    except jwt.InvalidTokenError:
+        return jsonify({"message": "Invalid JWT token"}), 401
+    
+    if not playlist_id:
+        return jsonify({"message": "Playlist ID required"}), 400
+    
+    if songs is None:
+        return jsonify({"message": "Songs array required"}), 400
+    
+    playlist_uuid = validate_uuid(playlist_id)
+    if not playlist_uuid:
+        return jsonify({"message": "Invalid playlist ID format"}), 400
+    
+    if db.update_playlist(email, playlist_uuid, songs):
+        return jsonify({"status": "Playlist updated successfully"}), 200
+    else:
+        return jsonify({"status": "Playlist update failed"}), 500
+
+@app.post('/change-playlist-visibility')
+def change_playlist_visibility():
+    if not request.json:
+        return jsonify({"message": "No JSON data provided"}), 400
+    jwt_token = request.json.get('jwt')
+    playlist_id = request.json.get('playlist_id')
+    public = request.json.get('public')
+    
+    if not jwt_token:
+        return jsonify({"message": "JWT token required"}), 401
+    
+    try:
+        email = jwt.decode(jwt_token, os.getenv('JWT_SECRET', 'secret'), algorithms=[os.getenv('JWT_ALGORITHM', 'HS256')])["email"]
+    except jwt.InvalidTokenError:
+        return jsonify({"message": "Invalid JWT token"}), 401
+    
+    if not playlist_id:
+        return jsonify({"message": "Playlist ID required"}), 400
+    
+    if public is None:
+        return jsonify({"message": "Public visibility flag required"}), 400
+    
+    playlist_uuid = validate_uuid(playlist_id)
+    if not playlist_uuid:
+        return jsonify({"message": "Invalid playlist ID format"}), 400
+    
+    if db.change_playlist_visibility(email, playlist_uuid, public):
+        return jsonify({"status": "Playlist visibility changed successfully"}), 200
+    else:
+        return jsonify({"status": "Playlist visibility change failed or access denied"}), 403
 
 @socketio.on('connect')
 def handle_connect():
