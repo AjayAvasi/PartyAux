@@ -300,7 +300,7 @@ def search_playlists(query):
             "owner": 1,
             "owner_username": 1,
             "public": 1,
-            "songs": 1
+            "playlist_id": 1
         }
     },
     { "$sort": { "score": -1 } },

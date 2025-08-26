@@ -85,15 +85,7 @@ Search for public playlists by name.
       "name": "My Public Playlist",
       "owner": "user@example.com",
       "public": true,
-      "songs": [
-        {
-          "title": "Song Title",
-          "artist": "Artist Name",
-          "duration": "3:45",
-          "thumbnail": "https://example.com/thumbnail.jpg",
-          "video_id": "abc123"
-        }
-      ]
+      "playlist_id": "jlksadkljsadjlkdaslkjasdkljads"
     }
   ]
 }
