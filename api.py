@@ -1,5 +1,5 @@
 from flask import Flask, request, jsonify
-from youtube import get_music_info
+from youtube import get_music_info, get_search_suggestion
 from misc import generate_otp, create_jwt
 import misc
 import db
@@ -24,6 +24,10 @@ def home():
 @app.get('/search/<query>')
 def search(query):
     return jsonify(get_music_info(query))
+
+@app.get('/search/suggestions/<query>')
+def search_suggestions(query):
+    return jsonify({"input": query, "suggestions": get_search_suggestion(query)})
 
 @app.post('/send-otp')
 def send_otp():
