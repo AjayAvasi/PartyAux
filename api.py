@@ -386,7 +386,6 @@ def change_playlist_visibility():
 def search_playlist(playlist_name):
     playlists = db.search_playlist(playlist_name)
     for playlist in playlists:
-        playlist['playlist_id'] = str(playlist['playlist_id'])
         playlist['_id'] = str(playlist['_id'])
     return jsonify({"status": "Playlists retrieved", "playlists": playlists}), 200
 
