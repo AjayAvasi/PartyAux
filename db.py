@@ -244,10 +244,10 @@ def change_max_downvotes(code, max_downvotes, email):
 
 
 def create_playlist(name, email):
-    playlist_id = uuid4()
+    playlist_id = str(uuid4())
     while get_document("Playlists", {"playlist_id": playlist_id}):
-        playlist_id = uuid4()
-    create_document({"_id": playlist_id, "name": name, "owner": email, "songs": [], "public": False, "playlist_id": playlist_id}, "Playlists")
+        playlist_id = str(uuid4())
+    create_document({"playlist_id": playlist_id, "name": name, "owner": email, "songs": [], "public": False}, "Playlists")
     return playlist_id
 
 def get_playlist_info(playlist_id):
@@ -270,4 +270,3 @@ def change_playlist_visibility(email, playlist_id, public):
     update_document("Playlists", {"playlist_id": playlist_id, "owner": email}, {"public": public})
     return True
 
-create_playlist("The Best Songs", "ajaydavasi@gmail.com")
