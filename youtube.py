@@ -98,7 +98,14 @@ def get_music_info(search_query):
         response = requests.post(url, headers=headers, data=json.dumps(payload))
         
         data = response.json()
-        uncleaned_song_list = data["contents"]["tabbedSearchResultsRenderer"]["tabs"][0]["tabRenderer"]["content"]["sectionListRenderer"]["contents"][0]["musicShelfRenderer"]["contents"]
+        temp_list = data["contents"]["tabbedSearchResultsRenderer"]["tabs"][0]["tabRenderer"]["content"]["sectionListRenderer"]["contents"]
+        uncleaned_song_list = None
+        for section in temp_list:
+            if "musicShelfRenderer" in section:
+                uncleaned_song_list = section["musicShelfRenderer"]["contents"]
+                break
+        if not uncleaned_song_list:
+            return []
         for song in uncleaned_song_list:
             if "musicResponsiveListItemRenderer" in song:
                 song = song["musicResponsiveListItemRenderer"]
@@ -115,6 +122,3 @@ def get_music_info(search_query):
     except Exception as e:
         print("Error: " + search_query + " " + str(e))
     return cleaned_song_list
-
-
-
