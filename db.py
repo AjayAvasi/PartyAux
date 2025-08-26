@@ -1,7 +1,7 @@
 from pymongo.mongo_client import MongoClient
 from pymongo.server_api import ServerApi
 from datetime import datetime, timedelta
-from bson import ObjectId
+from bson import ObjectId, UuidRepresentation
 import misc
 from dotenv import load_dotenv
 import os
@@ -15,7 +15,7 @@ load_dotenv()
 
 uri = os.getenv('MONGODB_URI', "mongodb+srv://username:password@cluster.mongodb.net/?retryWrites=true&w=majority&appName=Cluster0")
 # Create a new client and connect to the server
-client = MongoClient(uri, server_api=ServerApi('1'))
+client = MongoClient(uri, server_api=ServerApi('1'), uuidRepresentation='standard')
 db = client[os.getenv('DATABASE_NAME', "PartyAux")]
 # Send a ping to confirm a successful connection
 try:
@@ -269,4 +269,10 @@ def change_playlist_visibility(email, playlist_id, public):
         return False
     update_document("Playlists", {"playlist_id": playlist_id, "owner": email}, {"public": public})
     return True
+
+
+# Ensure no module-level code execution
+if __name__ == "__main__":
+    # This block will only run if the script is executed directly
+    pass
 
