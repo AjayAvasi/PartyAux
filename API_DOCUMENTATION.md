@@ -66,7 +66,42 @@ Get search suggestions for a query.
 
 ---
 
-### 4. Send OTP
+### 4. Search Playlists
+**GET** `/search-playlists/<playlist_name>`
+
+Search for public playlists by name.
+
+**Parameters:**
+- `playlist_name` (string): Name or partial name of the playlist to search for
+
+**Response:**
+```json
+{
+  "status": "Playlists retrieved",
+  "playlists": [
+    {
+      "_id": "550e8400-e29b-41d4-a716-446655440000",
+      "playlist_id": "550e8400-e29b-41d4-a716-446655440000",
+      "name": "My Public Playlist",
+      "owner": "user@example.com",
+      "public": true,
+      "songs": [
+        {
+          "title": "Song Title",
+          "artist": "Artist Name",
+          "duration": "3:45",
+          "thumbnail": "https://example.com/thumbnail.jpg",
+          "video_id": "abc123"
+        }
+      ]
+    }
+  ]
+}
+```
+
+---
+
+### 5. Send OTP
 **POST** `/send-otp`
 
 Send OTP to user's email for authentication.
@@ -87,7 +122,7 @@ Send OTP to user's email for authentication.
 
 ---
 
-### 5. Login
+### 6. Login
 **POST** `/login`
 
 Verify OTP and get JWT token.
@@ -117,7 +152,7 @@ Verify OTP and get JWT token.
 
 ---
 
-### 6. Check User Exists
+### 7. Check User Exists
 **POST** `/exists`
 
 Check if user exists in the system.
@@ -138,7 +173,7 @@ Check if user exists in the system.
 
 ---
 
-### 7. Create Account
+### 8. Create Account
 **POST** `/create-signup`
 
 Create a new user account.
@@ -174,7 +209,7 @@ Create a new user account.
 
 ## Room Management
 
-### 8. Create Room
+### 9. Create Room
 **POST** `/create-room`
 
 Create a new music room.
@@ -197,7 +232,7 @@ Create a new music room.
 
 ---
 
-### 9. Get Room Info
+### 10. Get Room Info
 **POST** `/get-room-info`
 
 Get detailed information about a room.
@@ -253,7 +288,7 @@ Get detailed information about a room.
 
 ---
 
-### 10. Change Max Downvotes
+### 11. Change Max Downvotes
 **POST** `/change-max-downvotes`
 
 Change the maximum downvotes threshold for a room (host only).
@@ -278,7 +313,7 @@ Change the maximum downvotes threshold for a room (host only).
 
 ## Queue Management
 
-### 11. Add Song to Queue
+### 12. Add Song to Queue
 **POST** `/add-song-to-queue`
 
 Add a song to the room's queue.
@@ -307,7 +342,7 @@ Add a song to the room's queue.
 
 ---
 
-### 12. Remove Song from Queue
+### 13. Remove Song from Queue
 **POST** `/remove-song-from-queue`
 
 Remove a song from the queue (host only).
@@ -330,7 +365,7 @@ Remove a song from the queue (host only).
 
 ---
 
-### 13. Next Song
+### 14. Next Song
 **POST** `/next-song`
 
 Skip to the next song in the queue.
@@ -352,7 +387,7 @@ Skip to the next song in the queue.
 
 ---
 
-### 14. Get Queue
+### 15. Get Queue
 **POST** `/get-queue`
 
 Get the current queue for a room.
@@ -386,7 +421,7 @@ Get the current queue for a room.
 
 ---
 
-### 15. Get Current Song
+### 16. Get Current Song
 **POST** `/get-current-song`
 
 Get the currently playing song.
@@ -418,7 +453,7 @@ Get the currently playing song.
 
 ---
 
-### 16. Add Downvote
+### 17. Add Downvote
 **POST** `/add-downvote`
 
 Downvote a song (current or in queue).
@@ -444,7 +479,7 @@ Downvote a song (current or in queue).
 
 ## Playlist Management
 
-### 17. Create Playlist
+### 18. Create Playlist
 **POST** `/create-playlist`
 
 Create a new playlist.
@@ -467,7 +502,7 @@ Create a new playlist.
 
 ---
 
-### 18. Get Playlist Info
+### 19. Get Playlist Info
 **POST** `/get-playlist-info`
 
 Get information about a specific playlist.
@@ -505,7 +540,7 @@ Get information about a specific playlist.
 
 ---
 
-### 19. Get User Playlists
+### 20. Get User Playlists
 **POST** `/get-user-playlists`
 
 Get all playlists owned by the authenticated user.
@@ -544,7 +579,7 @@ Get all playlists owned by the authenticated user.
 
 ---
 
-### 20. Update Playlist
+### 21. Update Playlist
 **POST** `/update-playlist`
 
 Update the songs in a playlist.
@@ -582,7 +617,7 @@ Update the songs in a playlist.
 
 ---
 
-### 21. Change Playlist Visibility
+### 22. Change Playlist Visibility
 **POST** `/change-playlist-visibility`
 
 Change whether a playlist is public or private.
