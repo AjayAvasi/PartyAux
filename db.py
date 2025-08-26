@@ -1,7 +1,6 @@
 from pymongo.mongo_client import MongoClient
 from pymongo.server_api import ServerApi
 from datetime import datetime, timedelta
-from bson import ObjectId, UuidRepresentation
 import misc
 from dotenv import load_dotenv
 import os
@@ -92,8 +91,6 @@ def verify_otp(email, otp) -> bool:
     return True
 
 def create_account(email, username):
-    if find_username(email):
-        return False
     create_document({"email": email, "username": username}, "AccountInfo")
     return True
 
@@ -247,7 +244,8 @@ def create_playlist(name, email):
     playlist_id = str(uuid4())
     while get_document("Playlists", {"playlist_id": playlist_id}):
         playlist_id = str(uuid4())
-    create_document({"playlist_id": playlist_id, "name": name, "owner": email, "songs": [], "public": False}, "Playlists")
+    owner_username = get_username_by_email(email)
+    create_document({"playlist_id": playlist_id, "name": name, "owner": email, "owner_username": owner_username, "songs": [], "public": False}, "Playlists")
     return playlist_id
 
 def get_playlist_info(playlist_id):
@@ -270,9 +268,49 @@ def change_playlist_visibility(email, playlist_id, public):
     update_document("Playlists", {"playlist_id": playlist_id, "owner": email}, {"public": public})
     return True
 
+def search_playlist(query):
+   playlist_collection = db["Playlists"]
+   pipeline = [
+    {
+        "$search": {
+            "index": "default",   # dynamic index is usually called "default"
+            "compound": {
+                "must": [
+                    {
+                        "text": {
+                            "query": query,
+                            "path": ["name", "owner", "owner_username"]
+                        }
+                    }
+                ],
+                "filter": [
+                    {
+                        "equals": {
+                            "path": "public",
+                            "value": True
+                        }
+                    }
+                ]
+            }
+        }
+    },
+    {
+        "$project": {
+            "name": 5,
+            "owner": 1,
+            "owner_username": 1,
+            "public": 1,
+            "score": { "$meta": "searchScore" }
+        }
+    },
+    { "$sort": { "score": -1 } },
+    { "$limit": 10 }
+]
+   playlists = list(playlist_collection.aggregate(pipeline))
+
+   return playlists
 
 # Ensure no module-level code execution
 if __name__ == "__main__":
-    # This block will only run if the script is executed directly
     pass
 
