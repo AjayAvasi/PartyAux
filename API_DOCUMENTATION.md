@@ -280,6 +280,33 @@ Get detailed information about a room.
 
 ---
 
+### 10.1. Refresh Room Info
+**POST** `/refresh-room-info`
+
+Force refresh and broadcast room info to all clients in a room via WebSocket. This is useful when you need to ensure all clients have the latest room state.
+
+**Request Body:**
+```json
+{
+  "jwt": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...",
+  "room": "ABC123"
+}
+```
+
+**Response:**
+```json
+{
+  "status": "Room info refresh broadcasted",
+  "room_info": {
+    // Same structure as get-room-info response
+  }
+}
+```
+
+**Note:** This endpoint also broadcasts a `room_info_updated` WebSocket event to all clients in the room.
+
+---
+
 ### 11. Change Max Downvotes
 **POST** `/change-max-downvotes`
 
@@ -651,6 +678,14 @@ Change whether a playlist is public or private.
 }
 ```
 
+#### Request Room Info
+```json
+{
+  "room": "ABC123",
+  "jwt": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..."
+}
+```
+
 ### Server to Client Events
 
 #### Server Message
@@ -673,6 +708,37 @@ Change whether a playlist is public or private.
 {
   "room": "ABC123",
   "email": "user@example.com"
+}
+```
+
+#### Room Info Updated
+```json
+{
+  "room_info": {
+    "code": "ABC123",
+    "host": {
+      "email": "host@example.com",
+      "username": "hostname"
+    },
+    "users": [
+      {
+        "email": "user1@example.com",
+        "username": "user1"
+      }
+    ],
+    "current_song": {},
+    "queue": [],
+    "max_downvotes": 3
+  }
+}
+```
+
+#### Room Info Response
+```json
+{
+  "room_info": {
+    // Same structure as Room Info Updated
+  }
 }
 ```
 

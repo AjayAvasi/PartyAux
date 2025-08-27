@@ -60,4 +60,8 @@ logs/
 
 # Temporary files
 *.tmp
-*.temp 
+*.temp
+
+# Test files
+test_*.py
+*_test.py 

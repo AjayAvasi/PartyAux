@@ -237,16 +237,70 @@ def add_downvote():
 
 @app.post('/get-room-info')
 def get_room_info():
-    if not request.json:
-        return jsonify({"message": "No JSON data provided"}), 400
-    room = request.json.get('room')
-    jwt_token = request.json.get('jwt')
-    email = jwt.decode(jwt_token, os.getenv('JWT_SECRET', 'secret'), algorithms=[os.getenv('JWT_ALGORITHM', 'HS256')])["email"]
-    room_info = db.get_room_info(room, email)
-    if room_info is not None:
-        return jsonify({"status": "Room info retrieved", "room_info": room_info}), 200
-    else:
-        return jsonify({"status": "Room info retrieval failed"}), 200
+    try:
+        if not request.json:
+            return jsonify({"message": "No JSON data provided"}), 400
+        
+        room = request.json.get('room')
+        jwt_token = request.json.get('jwt')
+        
+        if not room or not jwt_token:
+            return jsonify({"message": "Room code and JWT token required"}), 400
+        
+        try:
+            email = jwt.decode(jwt_token, os.getenv('JWT_SECRET', 'secret'), algorithms=[os.getenv('JWT_ALGORITHM', 'HS256')])["email"]
+        except jwt.InvalidTokenError as e:
+            print(f"JWT decode error in get_room_info: {e}")
+            return jsonify({"message": "Invalid authentication token"}), 401
+        
+        print(f"Getting room info for room {room}, user {email}")
+        
+        room_info = db.get_room_info(room, email)
+        if room_info is not None:
+            print(f"Successfully retrieved room info for room {room}")
+            return jsonify({"status": "Room info retrieved", "room_info": room_info}), 200
+        else:
+            print(f"Failed to retrieve room info for room {room}, user {email}")
+            return jsonify({"status": "Room info retrieval failed", "message": "Room not found or access denied"}), 404
+            
+    except Exception as e:
+        print(f"Error in get_room_info: {e}")
+        return jsonify({"message": "Internal server error"}), 500
+
+@app.post('/refresh-room-info')
+def refresh_room_info():
+    """Endpoint to force refresh room info for all clients in a room"""
+    try:
+        if not request.json:
+            return jsonify({"message": "No JSON data provided"}), 400
+        
+        room = request.json.get('room')
+        jwt_token = request.json.get('jwt')
+        
+        if not room or not jwt_token:
+            return jsonify({"message": "Room code and JWT token required"}), 400
+        
+        try:
+            email = jwt.decode(jwt_token, os.getenv('JWT_SECRET', 'secret'), algorithms=[os.getenv('JWT_ALGORITHM', 'HS256')])["email"]
+        except jwt.InvalidTokenError as e:
+            print(f"JWT decode error in refresh_room_info: {e}")
+            return jsonify({"message": "Invalid authentication token"}), 401
+        
+        print(f"Forcing room info refresh for room {room}, requested by user {email}")
+        
+        room_info = db.get_room_info(room, email)
+        if room_info is not None:
+            # Broadcast updated room info to all room members
+            socketio.emit('room_info_updated', {'room_info': room_info}, room=room)
+            print(f"Broadcasted forced room info refresh for room {room}")
+            return jsonify({"status": "Room info refresh broadcasted", "room_info": room_info}), 200
+        else:
+            print(f"Failed to refresh room info for room {room}, user {email}")
+            return jsonify({"status": "Room info refresh failed", "message": "Room not found or access denied"}), 404
+            
+    except Exception as e:
+        print(f"Error in refresh_room_info: {e}")
+        return jsonify({"message": "Internal server error"}), 500
     
 
 @app.post('/change-max-downvotes')
@@ -393,39 +447,123 @@ def change_playlist_visibility():
 
 @socketio.on('connect')
 def handle_connect():
-    print('Client connected')
+    print(f'Client connected: {request.sid}')
 
 @socketio.on('disconnect')
 def handle_disconnect():
-    print('Client disconnected')
+    print(f'Client disconnected: {request.sid}')
     
 
 
 @socketio.on('join_room')
 def handle_join_room(data):
-    room = data['room']
-    jwt_token = data['jwt']
-    email = jwt.decode(jwt_token, os.getenv('JWT_SECRET', 'secret'), algorithms=[os.getenv('JWT_ALGORITHM', 'HS256')])["email"]
-    if db.join_room(room, email):
-        join_room(room)
-        emit('server_message', {'message': f'Joined room {room}'}, to=request.sid)
-        emit('someone_joined', {'room': room, 'email': email}, room=room)
-    else:
-        emit('server_message', {'message': f'You are not in room {room}'}, to=request.sid)
+    try:
+        room = data.get('room')
+        jwt_token = data.get('jwt')
+        
+        if not room or not jwt_token:
+            emit('server_message', {'message': 'Room code and JWT token required'}, to=request.sid)
+            return
+            
+        try:
+            email = jwt.decode(jwt_token, os.getenv('JWT_SECRET', 'secret'), algorithms=[os.getenv('JWT_ALGORITHM', 'HS256')])["email"]
+        except jwt.InvalidTokenError as e:
+            print(f"JWT decode error in join_room: {e}")
+            emit('server_message', {'message': 'Invalid authentication token'}, to=request.sid)
+            return
+        
+        print(f"User {email} attempting to join room {room}")
+        
+        if db.join_room(room, email):
+            join_room(room)
+            emit('server_message', {'message': f'Joined room {room}'}, to=request.sid)
+            emit('someone_joined', {'room': room, 'email': email}, room=room)
+            
+            # Broadcast updated room info to all room members to force refresh
+            updated_room_info = db.get_room_info(room, email)
+            if updated_room_info:
+                emit('room_info_updated', {'room_info': updated_room_info}, room=room)
+                print(f"Broadcasted room info update for room {room} after user {email} joined")
+        else:
+            emit('server_message', {'message': f'Failed to join room {room}'}, to=request.sid)
+            
+    except Exception as e:
+        print(f"Error in handle_join_room: {e}")
+        emit('server_message', {'message': 'Internal server error during room join'}, to=request.sid)
 
 @socketio.on('leave_room')
 def handle_leave_room(data):
-    jwt_token = data['jwt']
-    email = jwt.decode(jwt_token, os.getenv('JWT_SECRET', 'secret'), algorithms=[os.getenv('JWT_ALGORITHM', 'HS256')])["email"]
-    room_data = db.get_room_by_email(email)
-    if room_data:
-        room = room_data["code"]
-        if db.leave_room(email):
-            leave_room(room)
-            emit('server_message', {'message': f'Left room {room}'},to=request.sid)
-            emit('someone_left', {'room': room, 'email': email}, room=room)
+    try:
+        jwt_token = data.get('jwt')
+        
+        if not jwt_token:
+            emit('server_message', {'message': 'JWT token required'}, to=request.sid)
+            return
+            
+        try:
+            email = jwt.decode(jwt_token, os.getenv('JWT_SECRET', 'secret'), algorithms=[os.getenv('JWT_ALGORITHM', 'HS256')])["email"]
+        except jwt.InvalidTokenError as e:
+            print(f"JWT decode error in leave_room: {e}")
+            emit('server_message', {'message': 'Invalid authentication token'}, to=request.sid)
+            return
+        
+        print(f"User {email} attempting to leave room")
+        
+        room_data = db.get_room_by_email(email)
+        if room_data:
+            room = room_data["code"]
+            if db.leave_room(email):
+                leave_room(room)
+                emit('server_message', {'message': f'Left room {room}'}, to=request.sid)
+                emit('someone_left', {'room': room, 'email': email}, room=room)
+                
+                # Broadcast updated room info to remaining room members
+                # Check if room still exists (might be deleted if it was empty)
+                remaining_room_data = db.get_room_by_code(room)
+                if remaining_room_data and len(remaining_room_data.get('users', [])) > 0:
+                    # Get updated room info for any remaining user
+                    first_user = remaining_room_data['users'][0]
+                    updated_room_info = db.get_room_info(room, first_user)
+                    if updated_room_info:
+                        emit('room_info_updated', {'room_info': updated_room_info}, room=room)
+                        print(f"Broadcasted room info update for room {room} after user {email} left")
+            else:
+                emit('server_message', {'message': f'Failed to leave room {room}'}, to=request.sid)
         else:
-            emit('server_message', {'message': f'You are not in room {room}'},to=request.sid)
-    else:
-        emit('server_message', {'message': 'You are not in any room'},to=request.sid)
+            emit('server_message', {'message': 'You are not in any room'}, to=request.sid)
+            
+    except Exception as e:
+        print(f"Error in handle_leave_room: {e}")
+        emit('server_message', {'message': 'Internal server error during room leave'}, to=request.sid)
+
+@socketio.on('request_room_info')
+def handle_request_room_info(data):
+    """Socket handler for clients to request room info updates"""
+    try:
+        jwt_token = data.get('jwt')
+        room = data.get('room')
+        
+        if not jwt_token or not room:
+            emit('server_message', {'message': 'JWT token and room code required'}, to=request.sid)
+            return
+            
+        try:
+            email = jwt.decode(jwt_token, os.getenv('JWT_SECRET', 'secret'), algorithms=[os.getenv('JWT_ALGORITHM', 'HS256')])["email"]
+        except jwt.InvalidTokenError as e:
+            print(f"JWT decode error in request_room_info: {e}")
+            emit('server_message', {'message': 'Invalid authentication token'}, to=request.sid)
+            return
+        
+        print(f"User {email} requesting room info for room {room}")
+        
+        room_info = db.get_room_info(room, email)
+        if room_info is not None:
+            emit('room_info_response', {'room_info': room_info}, to=request.sid)
+            print(f"Sent room info to user {email} for room {room}")
+        else:
+            emit('server_message', {'message': 'Failed to get room info'}, to=request.sid)
+            
+    except Exception as e:
+        print(f"Error in handle_request_room_info: {e}")
+        emit('server_message', {'message': 'Internal server error getting room info'}, to=request.sid)
 
