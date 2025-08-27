@@ -107,26 +107,62 @@ def get_room_size(code):
     return len(room["users"])
 
 def join_room(code, email):
-    room = get_room_by_code(code)
-    if email in room["users"]:
+    try:
+        room = get_room_by_code(code)
+        if not room:
+            print(f"Room {code} not found")
+            return False
+        
+        # If user is already in this room, return success
+        if email in room["users"]:
+            print(f"User {email} already in room {code}")
+            return True
+        
+        # Remove user from any other room first
+        leave_room(email)
+        
+        # Add user to the new room
+        add_to_array("Rooms", {"code": code}, {"users": email})
+        print(f"User {email} successfully joined room {code}")
         return True
-    leave_room(email)
-    if not room:
+        
+    except Exception as e:
+        print(f"Error in join_room: {e}")
         return False
-    
-    add_to_array("Rooms", {"code": code}, {"users": email})
-    return True
 
 def leave_room(email):
-    room = get_document("Rooms", {"users": email})
-    if not room:
+    try:
+        room = get_document("Rooms", {"users": email})
+        if not room:
+            print(f"User {email} not in any room")
+            return False
+        
+        room_code = room["code"]
+        print(f"User {email} leaving room {room_code}")
+        
+        # Remove user from room
+        pull_from_array("Rooms", {"code": room_code}, {"users": email})
+        
+        # Check room size after removal
+        updated_room = get_room_by_code(room_code)
+        if not updated_room or len(updated_room.get("users", [])) == 0:
+            # Room is empty, delete it
+            delete_document("Rooms", {"code": room_code})
+            print(f"Room {room_code} deleted as it became empty")
+        elif room["host"] == email:
+            # User was host, transfer to another user
+            remaining_users = updated_room.get("users", [])
+            if remaining_users:
+                new_host = remaining_users[0]
+                update_document("Rooms", {"code": room_code}, {"host": new_host})
+                print(f"Host transferred from {email} to {new_host} in room {room_code}")
+            
+        print(f"User {email} successfully left room {room_code}")
+        return True
+        
+    except Exception as e:
+        print(f"Error in leave_room: {e}")
         return False
-    pull_from_array("Rooms", {"code": room["code"]}, {"users": email})
-    if get_room_size(room["code"]) == 0:
-        delete_document("Rooms", {"code": room["code"]})
-    elif room["host"] == email:
-        update_document("Rooms", {"code": room["code"]}, {"host": room["users"][1]})
-    return True
 
 def add_song_to_queue(code, song, email):
     room = get_room_by_code(code)
@@ -218,16 +254,48 @@ def add_downvote(code, song_id, email, socketio):
     return -1
 
 def get_room_info(code, email):
-
-    room = get_room_by_code(code)
-    if not room:
+    try:
+        room = get_room_by_code(code)
+        if not room:
+            print(f"Room {code} not found")
+            return None
+        
+        if email not in room["users"]:
+            print(f"User {email} not authorized for room {code}")
+            return None
+        
+        # Convert ObjectId and other non-JSON serializable types
+        room = json.loads(json_util.dumps(room))
+        
+        # Enhance host and users information
+        try:
+            room["host"] = { 
+                "email": room["host"], 
+                "username": get_username_by_email(room["host"]) 
+            }
+        except Exception as e:
+            print(f"Error getting host username: {e}")
+            room["host"] = {"email": room["host"], "username": "Unknown"}
+        
+        try:
+            room["users"] = []
+            for user in room.get("users", []):
+                try:
+                    username = get_username_by_email(user)
+                    room["users"].append({"email": user, "username": username})
+                except Exception as e:
+                    print(f"Error getting username for {user}: {e}")
+                    room["users"].append({"email": user, "username": "Unknown"})
+        except Exception as e:
+            print(f"Error processing users list: {e}")
+            room["users"] = []
+        
+        print(f"Successfully got room info for room {code}")
+        return room
+        
+    except Exception as e:
+        print(f"Error in get_room_info: {e}")
         return None
-    if email not in room["users"]:
-        return None
-    room = json.loads(json_util.dumps(room))
-    room["host"] = { "email": room["host"], "username": get_username_by_email(room["host"]) }
-    room["users"] = [{"email": user, "username": get_username_by_email(user)} for user in room["users"]]
-    return room
 
 
 def change_max_downvotes(code, max_downvotes, email):
