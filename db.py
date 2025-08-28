@@ -196,7 +196,7 @@ def add_downvote(code, song_id, email, socketio):
     if email not in room["users"]:
         return -1
     if room["current_song"].get("uuid") == song_id and email not in room["current_song"].get("downvotes", []):
-        add_to_array("Rooms", {"code": code, "current_song.uuid": song_id}, {"current_song.$.downvotes": email})
+        add_to_array("Rooms", {"code": code}, {"current_song.downvotes": email})
         # Get updated room to check current downvote count
         room = get_room_by_code(code)
         if len(room["current_song"]["downvotes"]) >= room["max_downvotes"]:
