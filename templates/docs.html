@@ -146,8 +146,9 @@
         <ul style="margin:12px 0 0 16px; padding:0 0 0 8px; line-height:1.9; color:var(--muted)">
           <li>Most write actions are <b>POST</b> with JSON bodies. Read actions are <b>GET</b>.</li>
           <li>Authenticated routes expect <code>jwt</code> in the JSON body.</li>
-          <li>Room operations generally include <code>room</code> or <code>room_code</code>.</li>
-          <li>Playlist endpoints include <code>playlist_id</code> or are scoped to the user.</li>
+          <li>Room operations generally include <code>room</code> or <code>room_code</code> parameter.</li>
+          <li>Song objects use <code>artist</code>, <code>album</code>, <code>title</code>, <code>url</code> (video ID), and <code>album_art</code>.</li>
+          <li>Playlist endpoints include <code>playlist_id</code> or are scoped to the authenticated user.</li>
         </ul>
       </aside>
     </div>
@@ -211,26 +212,28 @@
         else if(k==='otp') obj[k] = "123456";
         else if(k==='username') obj[k] = "username";
         else if(k==='max_downvotes') obj[k] = 3;
-        else if(k==='room' || k==='room_code') obj[k] = "ROOM123";
-        else if(k==='song_uuid') obj[k] = "song-uuid-123";
-        else if(k==='playlist_id') obj[k] = "playlist-uuid-123";
+        else if(k==='room' || k==='room_code') obj[k] = "ABCD123";
+        else if(k==='song_uuid') obj[k] = "550e8400-e29b-41d4-a716-446655440001";
+        else if(k==='playlist_id') obj[k] = "550e8400-e29b-41d4-a716-446655440000";
         else if(k==='name') obj[k] = "My Playlist";
         else if(k==='public') obj[k] = true;
         else if(k==='host_playing_only') obj[k] = true;
         else if(k==='song') obj[k] = {
-          "title": "Song Title",
-          "by": "Artist Name",
-          "duration": "3:45",
-          "image": "https://example.com/image.jpg",
-          "url": "https://youtube.com/watch?v=example"
+          "artist": "The Beatles",
+          "album": "Abbey Road", 
+          "duration": "3:03",
+          "title": "Come Together",
+          "url": "jjoNDRXAJlI",
+          "album_art": "https://lh3.googleusercontent.com/example=w500-h500-l90-rj"
         };
         else if(k==='songs') obj[k] = [
           {
-            "title": "Song 1",
-            "by": "Artist 1",
-            "duration": "3:45",
-            "image": "https://example.com/image1.jpg",
-            "url": "https://youtube.com/watch?v=example1"
+            "artist": "The Beatles",
+            "album": "Abbey Road",
+            "duration": "3:03", 
+            "title": "Come Together",
+            "url": "jjoNDRXAJlI",
+            "album_art": "https://lh3.googleusercontent.com/example=w500-h500-l90-rj"
           }
         ];
         else obj[k] = "value";
@@ -242,18 +245,26 @@
       // Return appropriate example responses based on endpoint
       if (path === "/") return '"Welcome to the PartyAux API!"';
       if (path.includes("/search/") && !path.includes("suggestions")) {
-        return JSON.stringify({
-          "title": "Song Title",
-          "by": "Artist Name", 
-          "duration": "3:45",
-          "image": "https://example.com/image.jpg",
-          "url": "https://youtube.com/watch?v=example"
-        }, null, 2);
+        return JSON.stringify([
+          {
+            "artist": "The Beatles",
+            "album": "Abbey Road",
+            "duration": "3:03",
+            "title": "Come Together",
+            "url": "jjoNDRXAJlI",
+            "album_art": "https://lh3.googleusercontent.com/2Vgf8V5t2S4cOzGjX8E8YPdLuv_fN5lXZhFjA5AQdS4cOzGjX8E8YPdLuv_fN5lXZhFjA5A=w500-h500-l90-rj"
+          }
+        ], null, 2);
       }
       if (path.includes("/search/suggestions/")) {
         return JSON.stringify({
           "input": "query",
-          "suggestions": ["suggestion1", "suggestion2", "suggestion3"]
+          "suggestions": [
+            {
+              "complete_query": {"query": "beatles help"},
+              "completion_parts": [{"text": "beatles "}, {"text": "help", "bold": true}]
+            }
+          ]
         }, null, 2);
       }
       if (path.includes("/search-playlists/")) {
@@ -261,11 +272,12 @@
           "status": "Playlists retrieved",
           "playlists": [
             {
-              "_id": "playlist-id",
+              "_id": "507f1f77bcf86cd799439011",
               "name": "Party Mix",
               "owner": "user@example.com",
               "owner_username": "username",
-              "playlist_id": "playlist-uuid"
+              "playlist_id": "550e8400-e29b-41d4-a716-446655440000",
+              "public": true
             }
           ]
         }, null, 2);
@@ -276,7 +288,7 @@
       if (path === "/login") {
         return JSON.stringify({
           "message": "OTP verified successfully",
-          "jwt": "eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9..."
+          "jwt": "eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJlbWFpbCI6InVzZXJAZXhhbXBsZS5jb20ifQ.example_signature"
         }, null, 2);
       }
       if (path === "/exists") {
@@ -288,19 +300,32 @@
       if (path === "/create-room") {
         return JSON.stringify({
           "status": "Room created successfully",
-          "code": "ROOM123"
+          "code": "ABCD123"
         }, null, 2);
+      }
+      if (path === "/add-song-to-queue") {
+        return JSON.stringify({"status": "Song added to queue"}, null, 2);
+      }
+      if (path === "/remove-song-from-queue") {
+        return JSON.stringify({"status": "Song removed from queue"}, null, 2);
+      }
+      if (path === "/next-song") {
+        return JSON.stringify({"status": "Song skipped"}, null, 2);
       }
       if (path === "/get-queue") {
         return JSON.stringify({
           "status": "Queue retrieved",
           "queue": [
             {
-              "uuid": "song-uuid-1",
-              "title": "Song 1",
-              "by": "Artist 1",
+              "uuid": "550e8400-e29b-41d4-a716-446655440001",
+              "artist": "The Beatles",
+              "album": "Abbey Road",
+              "duration": "3:03",
+              "title": "Come Together",
+              "url": "jjoNDRXAJlI",
+              "album_art": "https://lh3.googleusercontent.com/example=w500-h500-l90-rj",
               "added_by": "username",
-              "downvotes": []
+              "downvotes": ["user1@example.com"]
             }
           ]
         }, null, 2);
@@ -309,49 +334,86 @@
         return JSON.stringify({
           "status": "Current song retrieved",
           "song": {
-            "uuid": "song-uuid-current",
-            "title": "Current Song",
-            "by": "Current Artist",
+            "uuid": "550e8400-e29b-41d4-a716-446655440001",
+            "artist": "The Beatles",
+            "album": "Abbey Road", 
+            "duration": "3:03",
+            "title": "Come Together",
+            "url": "jjoNDRXAJlI",
+            "album_art": "https://lh3.googleusercontent.com/example=w500-h500-l90-rj",
+            "added_by": "username",
             "downvotes": []
           }
+        }, null, 2);
+      }
+      if (path === "/add-downvote") {
+        return JSON.stringify({
+          "status": "Downvote added",
+          "downvotes": 2
         }, null, 2);
       }
       if (path === "/get-room-info") {
         return JSON.stringify({
           "status": "Room info retrieved",
           "room_info": {
-            "code": "ROOM123",
+            "_id": {"$oid": "507f1f77bcf86cd799439011"},
+            "code": "ABCD123",
             "host": {"email": "host@example.com", "username": "hostname"},
+            "created_at": {"$date": "2025-01-01T12:00:00.000Z"},
+            "current_song": {},
+            "queue": [],
             "max_downvotes": 3,
             "host_playing_only": true,
             "users": [{"email": "user@example.com", "username": "username"}]
           }
         }, null, 2);
       }
+      if (path === "/change-max-downvotes") {
+        return JSON.stringify({"status": "Max downvotes changed"}, null, 2);
+      }
       if (path === "/create-playlist") {
         return JSON.stringify({
           "status": "Playlist created successfully",
-          "playlist_id": "playlist-uuid-123"
+          "playlist_id": "550e8400-e29b-41d4-a716-446655440000"
         }, null, 2);
       }
       if (path === "/get-playlist-info") {
         return JSON.stringify({
           "status": "Playlist info retrieved",
           "playlist": {
-            "_id": "mongo-id",
-            "playlist_id": "playlist-uuid-123",
+            "_id": "507f1f77bcf86cd799439011",
+            "playlist_id": "550e8400-e29b-41d4-a716-446655440000",
             "name": "My Playlist",
             "owner": "user@example.com",
+            "owner_username": "username",
             "public": false,
-            "songs": []
+            "songs": [
+              {
+                "artist": "The Beatles",
+                "album": "Abbey Road",
+                "duration": "3:03", 
+                "title": "Come Together",
+                "url": "jjoNDRXAJlI",
+                "album_art": "https://lh3.googleusercontent.com/example=w500-h500-l90-rj"
+              }
+            ]
           }
         }, null, 2);
       }
       if (path === "/get-user-playlists") {
         return JSON.stringify({
           "status": "User playlists retrieved",
-          "playlist_ids": ["playlist-uuid-1", "playlist-uuid-2"]
+          "playlist_ids": ["550e8400-e29b-41d4-a716-446655440000", "550e8400-e29b-41d4-a716-446655440001"]
         }, null, 2);
+      }
+      if (path === "/update-playlist") {
+        return JSON.stringify({"status": "Playlist updated successfully"}, null, 2);
+      }
+      if (path === "/change-playlist-visibility") {
+        return JSON.stringify({"status": "Playlist visibility changed successfully"}, null, 2);
+      }
+      if (path === "/change-host-playing-only") {
+        return JSON.stringify({"status": "Host playing only changed successfully"}, null, 2);
       }
       
       // Default success response
@@ -376,7 +438,7 @@
       const hasQuery = params.some(p=>p[0]==='query');
       if(hasQuery){
         params.filter(p=>p[0]==='query').forEach(([_,k])=>{
-          url.searchParams.set(k, k.includes('room')? 'ROOMCODE' : (k.includes('playlist')? 'playlist_id' : (k==='jwt' ? ($('#jwtInput').value||'<your-jwt>') : 'value')));
+          url.searchParams.set(k, k.includes('room')? 'ABCD123' : (k.includes('playlist')? 'playlist_id' : (k==='jwt' ? ($('#jwtInput').value||'<your-jwt>') : 'value')));
         });
       }
       const lines = [
@@ -464,9 +526,10 @@
                 <h4>Notes</h4>
                 <ul style="margin:0 0 0 18px;color:var(--muted)">
                   <li>Authentication required endpoints need a valid JWT token in the request body.</li>
-                  <li>Room codes are 6-character alphanumeric strings (e.g., "ABC123").</li>
-                  <li>Song objects include title, by (artist), duration, image URL, and YouTube URL.</li>
+                  <li>Room codes are 6-character alphanumeric strings (e.g., "ABCD123").</li>
+                  <li>Song objects include: artist, album, duration, title, url (YouTube video ID), and album_art (image URL).</li>
                   <li>UUIDs are generated automatically for songs and playlists.</li>
+                  <li>Queue songs include additional fields: uuid, added_by (username), and downvotes (array of emails).</li>
                 </ul>
               </div>
             </div>`;
