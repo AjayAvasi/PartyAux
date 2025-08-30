@@ -1,0 +1,356 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>PartyAux API Documentation</title>
+  <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+  <style>
+    :root{
+      --bg:#0a0a0a;        /* near-black */
+      --fg:#f7f7f7;        /* near-white */
+      --muted:#bdbdbd;     /* mid-gray */
+      --edge:#1a1a1a;      /* card bg */
+      --border:#222;       /* subtle borders */
+      --accent:#fff;       /* pure white accents */
+      --shadow: 0 10px 30px rgba(0,0,0,.5);
+      --radius: 18px;
+    }
+    *{box-sizing:border-box}
+    html,body{height:100%}
+    body{
+      margin:0;
+      font-family:"Space Grotesk", system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial, "Apple Color Emoji","Segoe UI Emoji";
+      background:var(--bg);
+      color:var(--fg);
+      line-height:1.5;
+      -webkit-font-smoothing:antialiased;
+    }
+    .container{max-width:1100px;margin:0 auto;padding:36px 20px 64px}
+    header{
+      display:flex;gap:18px;align-items:flex-start;justify-content:space-between;flex-wrap:wrap;margin-bottom:28px
+    }
+    .title{
+      font-size: clamp(28px, 3.2vw, 44px);
+      font-weight:700;letter-spacing:-0.02em
+    }
+    .subtitle{color:var(--muted);max-width:720px;margin-top:6px}
+
+    .panel{
+      background:linear-gradient(180deg, #0d0d0d, #0a0a0a);
+      border:1px solid var(--border);
+      border-radius:var(--radius);
+      box-shadow:var(--shadow);
+      padding:16px;
+    }
+
+    .grid{
+      display:grid;grid-template-columns:1.1fr .9fr;gap:18px
+    }
+    @media (max-width: 980px){.grid{grid-template-columns:1fr;}}
+
+    .row{display:flex;gap:10px;align-items:center;flex-wrap:wrap}
+    .input, .select, .button{
+      background:#0f0f0f;color:var(--fg);
+      border:1px solid var(--border);border-radius:12px;
+      padding:12px 14px;font-size:14px
+    }
+    .input{flex:1;min-width:200px}
+    .select{min-width:220px}
+    .button{cursor:pointer}
+    .button:hover{filter:brightness(1.15)}
+
+    .pill{font-size:12px;padding:4px 10px;border:1px solid var(--border);border-radius:999px;color:var(--muted)}
+
+    details.endpoint{border:1px solid var(--border);border-radius:16px;overflow:hidden;background:var(--edge)}
+    details.endpoint+details.endpoint{margin-top:12px}
+    summary{
+      list-style:none;cursor:pointer;padding:18px 18px;display:grid;grid-template-columns:120px 1fr auto;gap:12px;align-items:center
+    }
+    summary::-webkit-details-marker{display:none}
+    .method{
+      font-weight:700;text-align:center;min-width:100px;padding:6px 12px;border:1px solid var(--border);border-radius:999px
+    }
+    .GET{background:rgba(255,255,255,0.04)}
+    .POST{background:rgba(255,255,255,0.08)}
+    .path{font-weight:600}
+    .chev{opacity:.6}
+
+    .content{padding:0 18px 18px}
+    .section{padding:14px 0;border-top:1px solid var(--border)}
+    .section h4{margin:0 0 10px 0;font-size:14px;color:var(--muted);letter-spacing:.08em;text-transform:uppercase}
+
+    code, pre{font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace}
+    pre{margin:0;background:#0f0f0f;border:1px solid var(--border);border-radius:14px;padding:14px;overflow:auto}
+    .kvs{display:flex;flex-wrap:wrap;gap:8px}
+    .kv{background:#0f0f0f;border:1px solid var(--border);border-radius:10px;padding:8px 10px;font-size:13px}
+
+    .two-col{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+    @media (max-width:800px){.two-col{grid-template-columns:1fr}}
+
+    .copy{
+      margin-left:8px;border:1px solid var(--border);border-radius:8px;background:#121212;color:var(--fg);padding:6px 10px;cursor:pointer;font-size:12px
+    }
+    .copy:active{transform:translateY(1px)}
+
+    footer{margin-top:24px;color:var(--muted);font-size:12px;text-align:center}
+
+    .badge{border:1px solid var(--border);border-radius:999px;padding:6px 10px;color:var(--muted);font-size:12px}
+
+    .divider{height:1px;background:var(--border);margin:10px 0}
+  </style>
+</head>
+<body>
+  <div class="container">
+    <header>
+      <div>
+        <div class="title">PartyAux API</div>
+        <div class="subtitle">Minimal, clean, black & white docs for your Flask + Socket.IO backend. Use the base URL, expand endpoints, copy cURL/fetch examples, and go.</div>
+      </div>
+      <div class="row">
+        <span class="pill">Font: Space Grotesk</span>
+        <span class="pill">Theme: Monochrome</span>
+      </div>
+    </header>
+
+    <div class="grid">
+      <section class="panel">
+        <div class="row" style="gap:12px;align-items:flex-end">
+          <div style="flex:1">
+            <label class="pill" style="display:block;margin-bottom:8px">Base URL</label>
+            <input class="input" id="baseUrl" placeholder="https://your-domain.tld" />
+          </div>
+          <div>
+            <label class="pill" style="display:block;margin-bottom:8px">JWT (optional)</label>
+            <input class="input" id="jwtInput" placeholder="Paste JWT for examples" />
+          </div>
+        </div>
+        <div class="divider"></div>
+        <div class="row" style="gap:12px">
+          <input id="search" class="input" placeholder="Search endpoints… (path, method, param)" />
+          <select id="filterMethod" class="select">
+            <option value="">All methods</option>
+            <option>GET</option>
+            <option>POST</option>
+          </select>
+          <button id="expandAll" class="button">Expand all</button>
+          <button id="collapseAll" class="button">Collapse all</button>
+        </div>
+      </section>
+
+      <aside class="panel">
+        <div class="row" style="justify-content:space-between">
+          <div class="pill">Quick Tips</div>
+          <div class="badge" id="countBadge">0 endpoints</div>
+        </div>
+        <ul style="margin:12px 0 0 16px; padding:0 0 0 8px; line-height:1.9; color:var(--muted)">
+          <li>Most write actions are <b>POST</b> with JSON bodies. Read actions are <b>GET</b>.</li>
+          <li>Authenticated routes expect <code>jwt</code> in the JSON body.</li>
+          <li>Room operations generally include <code>room</code> or <code>room_code</code>.</li>
+          <li>Playlist endpoints include <code>playlist_id</code> or are scoped to the user.</li>
+        </ul>
+      </aside>
+    </div>
+
+    <main id="endpoints" style="margin-top:18px"></main>
+
+    <footer>
+      Built with ❤ in monochrome. Drop this file anywhere static hosting is allowed.
+    </footer>
+  </div>
+
+  <script>
+    // ---- Endpoint data (auto-extracted from your code) ----
+    const ENDPOINTS = [
+      { path: "/", methods:["GET"], params: [] },
+      { path: "/search/<query>", methods:["GET"], params:[["path","query"]] },
+      { path: "/search/suggestions/<query>", methods:["GET"], params:[["path","query"]] },
+      { path: "/search-playlists/<playlist_name>", methods:["GET"], params:[["path","playlist_name"]] },
+      { path: "/send-otp", methods:["GET"], params:[] },
+      { path: "/login", methods:["GET"], params:[] },
+      { path: "/exists", methods:["POST"], params:[["json","jwt"]] },
+      { path: "/create-signup", methods:["POST"], params:[["json","jwt"],["json","username"]] },
+      { path: "/create-room", methods:["POST"], params:[["json","jwt"],["json","max_downvotes"]] },
+      { path: "/add-song-to-queue", methods:["POST"], params:[["json","room"],["json","song"],["json","jwt"]] },
+      { path: "/remove-song-from-queue", methods:["POST"], params:[["json","room"],["json","song_uuid"],["json","jwt"]] },
+      { path: "/next-song", methods:["POST"], params:[["json","room"],["json","jwt"]] },
+      { path: "/get-queue", methods:["GET"], params:[["query","room"]] },
+      { path: "/get-current-song", methods:["GET"], params:[["query","room"]] },
+      { path: "/add-downvote", methods:["POST"], params:[["json","room"],["json","song_uuid"],["json","jwt"]] },
+      { path: "/get-room-info", methods:["GET"], params:[["query","room"]] },
+      { path: "/change-max-downvotes", methods:["POST"], params:[["json","room"],["json","max_downvotes"],["json","jwt"]] },
+      { path: "/create-playlist", methods:["POST"], params:[["json","jwt"],["json","name"]] },
+      { path: "/get-playlist-info", methods:["GET"], params:[["query","playlist_id"]] },
+      { path: "/get-user-playlists", methods:["GET"], params:[["query","jwt"]] },
+      { path: "/update-playlist", methods:["POST"], params:[["json","jwt"],["json","playlist_id"],["json","updates"]] },
+      { path: "/change-playlist-visibility", methods:["POST"], params:[["json","jwt"],["json","playlist_id"],["json","public"]] },
+      { path: "/change-host-playing-only", methods:["POST"], params:[["json","jwt"],["json","room_code"],["json","host_playing_only"]] },
+    ];
+
+    // ---- Simple helpers ----
+    const $ = (q, el=document) => el.querySelector(q);
+    const $$ = (q, el=document) => Array.from(el.querySelectorAll(q));
+
+    function titleize(p){
+      if(p === "/") return "Home";
+      const clean = p.replace(/^\//,"").replace(/<|>/g,"")
+      return clean.split("/").map(x=>x.replace(/[-_]/g," ")).join(" → ")
+    }
+
+    function paramTemplate(params){
+      if(!params || !params.length) return "-";
+      return params.map(([k,v])=>`${k}:${v}`).join(", ");
+    }
+
+    function defaultBody(params){
+      const obj = {};
+      params.filter(p=>p[0]==='json').forEach(([_,k])=>{
+        if(k==='jwt') obj[k] = $('#jwtInput').value || "<your-jwt>";
+        else if(/downvotes|public|host_playing_only/.test(k)) obj[k] = 1;
+        else if(/room/.test(k)) obj[k] = "ROOMCODE";
+        else if(/playlist/.test(k)) obj[k] = "playlist_id";
+        else if(k==='song') obj[k] = { uuid: "song-uuid", title: "Song Title", by: "Artist" };
+        else if(k==='updates') obj[k] = { name: "My Playlist" };
+        else obj[k] = "value";
+      });
+      return obj;
+    }
+
+    function exampleCurl(base, method, path, params){
+      const url = new URL((base||'').replace(/\/$/,''));
+      const hasPathParam = /<[^>]+>/.test(path);
+      let finalPath = path;
+      if(hasPathParam){
+        finalPath = path.replace(/<([^>]+)>/g, (m,k)=>{
+          const guess = k.includes('query')? 'beatles' : (k.includes('playlist_name')? 'party' : 'value');
+          return guess;
+        });
+      }
+      url.pathname = (url.pathname.replace(/\/$/,'')) + finalPath;
+      const body = defaultBody(params);
+      const hasJSON = params.some(p=>p[0]==='json');
+      const hasQuery = params.some(p=>p[0]==='query');
+      if(hasQuery){
+        params.filter(p=>p[0]==='query').forEach(([_,k])=>{
+          url.searchParams.set(k, k.includes('room')? 'ROOMCODE' : (k.includes('playlist')? 'playlist_id' : (k==='jwt' ? ($('#jwtInput').value||'<your-jwt>') : 'value')));
+        });
+      }
+      const lines = [
+        `curl -X ${method} "${url.toString()||'https://api.example.com'}"` + (hasJSON?` \\\n  -H 'Content-Type: application/json' \\\n  -d '${JSON.stringify(body,null,0)}'`: '')
+      ];
+      return lines.join("\n");
+    }
+
+    function exampleFetch(base, method, path, params){
+      const hasJSON = params.some(p=>p[0]==='json');
+      const curl = exampleCurl(base, method, path, params);
+      const urlLine = curl.split("\n")[0].match(/\"(.*)\"/)[1];
+      return `fetch('${urlLine}', {\n  method: '${method}',${hasJSON?"\n  headers: { 'Content-Type': 'application/json' },\n  body: JSON.stringify("+JSON.stringify(defaultBody(params),null,2)+")":''}\n}).then(r=>r.json()).then(console.log)`
+    }
+
+    function copy(text){
+      navigator.clipboard.writeText(text).then(()=>{
+        // Optional: toast
+      });
+    }
+
+    function render(){
+      const list = $('#endpoints');
+      list.innerHTML = '';
+      const q = ($('#search').value||'').toLowerCase();
+      const fm = $('#filterMethod').value;
+      const base = $('#baseUrl').value || 'https://api.example.com';
+
+      const filtered = ENDPOINTS.filter(e=>{
+        const hay = [e.path, e.methods.join(','), ...e.params.map(p=>p.join(':'))].join(' ').toLowerCase();
+        const okQ = q? hay.includes(q) : true;
+        const okM = fm? e.methods.includes(fm) : true;
+        return okQ && okM;
+      });
+
+      $('#countBadge').textContent = `${filtered.length} endpoint${filtered.length!==1?'s':''}`;
+
+      filtered.forEach(e=>{
+        e.methods.forEach(method=>{
+          const id = (method+e.path).replace(/[^a-z0-9]/gi,'_');
+          const det = document.createElement('details');
+          det.className = 'endpoint';
+          det.id = id;
+          det.innerHTML = `
+            <summary>
+              <div class="method ${method}">${method}</div>
+              <div class="path">${e.path}</div>
+              <div class="chev">▾</div>
+            </summary>
+            <div class="content">
+              <div class="section">
+                <h4>Overview</h4>
+                <div class="kvs">
+                  <div class="kv"><b>Path:</b> ${e.path}</div>
+                  <div class="kv"><b>Method:</b> ${method}</div>
+                  <div class="kv"><b>Params:</b> ${paramTemplate(e.params)}</div>
+                </div>
+              </div>
+
+              <div class="section two-col">
+                <div>
+                  <h4>cURL</h4>
+                  <pre><code id="curl_${id}">${exampleCurl(base, method, e.path, e.params)}</code></pre>
+                  <button class="copy" data-copy="curl_${id}">Copy</button>
+                </div>
+                <div>
+                  <h4>fetch()</h4>
+                  <pre><code id="fetch_${id}">${exampleFetch(base, method, e.path, e.params)}</code></pre>
+                  <button class="copy" data-copy="fetch_${id}">Copy</button>
+                </div>
+              </div>
+
+              <div class="section two-col">
+                <div>
+                  <h4>Request Body (JSON)</h4>
+                  <pre><code>${JSON.stringify(defaultBody(e.params), null, 2)}</code></pre>
+                </div>
+                <div>
+                  <h4>Example Response</h4>
+                  <pre><code>{
+  "ok": true,
+  "message": "Example only. Refer to actual API response."
+}</code></pre>
+                </div>
+              </div>
+
+              <div class="section">
+                <h4>Notes</h4>
+                <ul style="margin:0 0 0 18px;color:var(--muted)">
+                  <li>If an endpoint requires <code>jwt</code>, include it in the JSON body (or as query for GET where shown).</li>
+                  <li>For room-related routes, ensure the room exists and your user is a member/host.</li>
+                </ul>
+              </div>
+            </div>`;
+          list.appendChild(det);
+        })
+      });
+    }
+
+    document.addEventListener('click', (e)=>{
+      if(e.target.matches('.copy')){
+        const id = e.target.getAttribute('data-copy');
+        const text = document.getElementById(id).innerText;
+        copy(text);
+        e.target.textContent = 'Copied';
+        setTimeout(()=> e.target.textContent = 'Copy', 1200);
+      }
+    });
+
+    $('#search').addEventListener('input', render);
+    $('#filterMethod').addEventListener('change', render);
+    $('#baseUrl').addEventListener('input', render);
+    $('#jwtInput').addEventListener('input', render);
+
+    $('#expandAll').addEventListener('click', ()=> $$('#endpoints details').forEach(d=> d.open=true));
+    $('#collapseAll').addEventListener('click', ()=> $$('#endpoints details').forEach(d=> d.open=false));
+
+    render();
+  </script>
+</body>
+</html>

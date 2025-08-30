@@ -99,7 +99,7 @@ def room_exists(code):
 
 def create_room(email, max_downvotes):
     code = misc.create_room_code()
-    create_document({"code": code, "host": email, "created_at": datetime.now(), "current_song": {}, "queue": [], "users": [], "max_downvotes": max_downvotes}, "Rooms")
+    create_document({"code": code, "host": email, "created_at": datetime.now(), "current_song": {}, "queue": [], "users": [], "max_downvotes": max_downvotes, "host_playing_only": True}, "Rooms")
     return code
 
 def get_room_size(code):
@@ -266,6 +266,15 @@ def change_playlist_visibility(email, playlist_id, public):
     if email != playlist["owner"]:
         return False
     update_document("Playlists", {"playlist_id": playlist_id, "owner": email}, {"public": public})
+    return True
+
+def change_host_playing_only(code, host_playing_only, email):
+    room = get_room_by_code(code)
+    if not room:
+        return False
+    if email != room["host"]:
+        return False
+    update_document("Rooms", {"code": code, "host": email}, {"host_playing_only": host_playing_only})
     return True
 
 def search_playlists(query):

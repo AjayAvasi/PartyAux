@@ -1,4 +1,4 @@
-from flask import Flask, request, jsonify
+from flask import Flask, request, jsonify, render_template
 from youtube import get_music_info, get_search_suggestion
 from misc import generate_otp, create_jwt
 import misc
@@ -20,6 +20,10 @@ socketio = SocketIO(app, cors_allowed_origins=os.getenv('CORS_ALLOWED_ORIGINS', 
 @app.route('/')
 def home():
     return 'Welcome to the PartyAux API!'
+
+@app.route('/docs')
+def docs():
+    return render_template('docs.html')
 
 @app.get('/search/<query>')
 def search(query):
@@ -390,6 +394,33 @@ def change_playlist_visibility():
     else:
         return jsonify({"status": "Playlist visibility change failed or access denied"}), 403
 
+@app.post("/change-host-playing-only")
+def change_host_playing_only():
+    if not request.json:
+        return jsonify({"message": "No JSON data provided"}), 400
+    jwt_token = request.json.get('jwt')
+    room_code = request.json.get('room_code')
+    host_playing_only = request.json.get('host_playing_only')
+
+    if not jwt_token:
+        return jsonify({"message": "JWT token required"}), 401
+
+    try:
+        email = jwt.decode(jwt_token, os.getenv('JWT_SECRET', 'secret'), algorithms=[os.getenv('JWT_ALGORITHM', 'HS256')])["email"]
+    except jwt.InvalidTokenError:
+        return jsonify({"message": "Invalid JWT token"}), 401
+
+    if not room_code:
+        return jsonify({"message": "Room code required"}), 400
+
+    if host_playing_only is None:
+        return jsonify({"message": "Host playing only flag required"}), 400
+
+    if db.change_host_playing_only(room_code, host_playing_only, email):
+        emit('host_playing_only_changed', {'room_code': room_code, 'host_playing_only': host_playing_only}, room=room_code)
+        return jsonify({"status": "Host playing only changed successfully"}), 200
+    else:
+        return jsonify({"status": "Host playing only change failed or access denied"}), 403
 
 @socketio.on('connect')
 def handle_connect():
