@@ -150,10 +150,346 @@
           <li>Song objects use <code>artist</code>, <code>album</code>, <code>title</code>, <code>url</code> (video ID), and <code>album_art</code>.</li>
           <li>Playlist endpoints include <code>playlist_id</code> or are scoped to the authenticated user.</li>
         </ul>
+        
+        <div style="margin-top:16px;padding-top:16px;border-top:1px solid var(--border)">
+          <div class="pill" style="margin-bottom:8px">Socket.IO Example</div>
+          <pre style="font-size:11px;overflow-x:auto"><code>// Connect to Socket.IO
+const socket = io('http://35.208.64.59');
+
+// Join a room
+socket.emit('join_room', {
+  room: 'ABCD123',
+  jwt: 'your-jwt-token'
+});
+
+// Listen for events
+socket.on('add_song', (data) => {
+  console.log('Song added:', data.song);
+});
+
+socket.on('current_song', (data) => {
+  console.log('Now playing:', data.song);
+});</code></pre>
+        </div>
       </aside>
     </div>
 
     <main id="endpoints" style="margin-top:18px"></main>
+
+    <!-- Socket.IO Events Section -->
+    <section style="margin-top:36px">
+      <div class="panel">
+        <div class="row" style="justify-content:space-between;margin-bottom:16px">
+          <h2 style="margin:0;font-size:24px;font-weight:600">Socket.IO Events</h2>
+          <div class="badge">Real-time Communication</div>
+        </div>
+        
+        <div class="grid" style="margin-top:18px">
+          <!-- Incoming Events (Client to Server) -->
+          <div class="panel" style="background:var(--edge)">
+            <h3 style="margin:0 0 16px 0;font-size:18px;color:var(--accent)">📤 Incoming (Client → Server)</h3>
+            
+            <details class="endpoint" style="margin-bottom:12px">
+              <summary>
+                <div class="method" style="background:rgba(0,150,255,0.1);color:#0096ff">LISTEN</div>
+                <div class="path">connect</div>
+                <div class="chev">▾</div>
+              </summary>
+              <div class="content">
+                <div class="section">
+                  <h4>Description</h4>
+                  <p style="color:var(--muted)">Triggered when a client connects to the server.</p>
+                  <h4>Data</h4>
+                  <pre><code>// No data required</code></pre>
+                </div>
+              </div>
+            </details>
+
+            <details class="endpoint" style="margin-bottom:12px">
+              <summary>
+                <div class="method" style="background:rgba(0,150,255,0.1);color:#0096ff">LISTEN</div>
+                <div class="path">disconnect</div>
+                <div class="chev">▾</div>
+              </summary>
+              <div class="content">
+                <div class="section">
+                  <h4>Description</h4>
+                  <p style="color:var(--muted)">Triggered when a client disconnects from the server.</p>
+                  <h4>Data</h4>
+                  <pre><code>// No data required</code></pre>
+                </div>
+              </div>
+            </details>
+
+            <details class="endpoint" style="margin-bottom:12px">
+              <summary>
+                <div class="method" style="background:rgba(0,150,255,0.1);color:#0096ff">LISTEN</div>
+                <div class="path">join_room</div>
+                <div class="chev">▾</div>
+              </summary>
+              <div class="content">
+                <div class="section">
+                  <h4>Description</h4>
+                  <p style="color:var(--muted)">Join a specific room for real-time updates.</p>
+                  <h4>Data</h4>
+                  <pre><code>{
+  "room": "ABCD123",
+  "jwt": "your-jwt-token"
+}</code></pre>
+                  <h4>Response Events</h4>
+                  <ul style="color:var(--muted);margin:8px 0 0 16px">
+                    <li><code>server_message</code> - Confirmation message</li>
+                    <li><code>someone_joined</code> - Broadcast to room members</li>
+                  </ul>
+                </div>
+              </div>
+            </details>
+
+            <details class="endpoint">
+              <summary>
+                <div class="method" style="background:rgba(0,150,255,0.1);color:#0096ff">LISTEN</div>
+                <div class="path">leave_room</div>
+                <div class="chev">▾</div>
+              </summary>
+              <div class="content">
+                <div class="section">
+                  <h4>Description</h4>
+                  <p style="color:var(--muted)">Leave the current room.</p>
+                  <h4>Data</h4>
+                  <pre><code>{
+  "jwt": "your-jwt-token"
+}</code></pre>
+                  <h4>Response Events</h4>
+                  <ul style="color:var(--muted);margin:8px 0 0 16px">
+                    <li><code>server_message</code> - Confirmation message</li>
+                    <li><code>someone_left</code> - Broadcast to room members</li>
+                  </ul>
+                </div>
+              </div>
+            </details>
+          </div>
+
+          <!-- Outgoing Events (Server to Client) -->
+          <div class="panel" style="background:var(--edge)">
+            <h3 style="margin:0 0 16px 0;font-size:18px;color:var(--accent)">📥 Outgoing (Server → Client)</h3>
+            
+            <details class="endpoint" style="margin-bottom:12px">
+              <summary>
+                <div class="method" style="background:rgba(255,150,0,0.1);color:#ff9600">EMIT</div>
+                <div class="path">add_song</div>
+                <div class="chev">▾</div>
+              </summary>
+              <div class="content">
+                <div class="section">
+                  <h4>Description</h4>
+                  <p style="color:var(--muted)">Emitted when a song is added to the queue.</p>
+                  <h4>Data</h4>
+                  <pre><code>{
+  "song": {
+    "uuid": "550e8400-e29b-41d4-a716-446655440001",
+    "artist": "The Beatles",
+    "album": "Abbey Road",
+    "duration": "3:03",
+    "title": "Come Together",
+    "url": "jjoNDRXAJlI",
+    "album_art": "https://lh3.googleusercontent.com/...",
+    "added_by": "username",
+    "downvotes": []
+  }
+}</code></pre>
+                </div>
+              </div>
+            </details>
+
+            <details class="endpoint" style="margin-bottom:12px">
+              <summary>
+                <div class="method" style="background:rgba(255,150,0,0.1);color:#ff9600">EMIT</div>
+                <div class="path">remove_song</div>
+                <div class="chev">▾</div>
+              </summary>
+              <div class="content">
+                <div class="section">
+                  <h4>Description</h4>
+                  <p style="color:var(--muted)">Emitted when a song is removed from the queue.</p>
+                  <h4>Data</h4>
+                  <pre><code>{
+  "song": "550e8400-e29b-41d4-a716-446655440001"
+}</code></pre>
+                </div>
+              </div>
+            </details>
+
+            <details class="endpoint" style="margin-bottom:12px">
+              <summary>
+                <div class="method" style="background:rgba(255,150,0,0.1);color:#ff9600">EMIT</div>
+                <div class="path">delete_head_song</div>
+                <div class="chev">▾</div>
+              </summary>
+              <div class="content">
+                <div class="section">
+                  <h4>Description</h4>
+                  <p style="color:var(--muted)">Emitted when the current song is skipped.</p>
+                  <h4>Data</h4>
+                  <pre><code>{}</code></pre>
+                </div>
+              </div>
+            </details>
+
+            <details class="endpoint" style="margin-bottom:12px">
+              <summary>
+                <div class="method" style="background:rgba(255,150,0,0.1);color:#ff9600">EMIT</div>
+                <div class="path">current_song</div>
+                <div class="chev">▾</div>
+              </summary>
+              <div class="content">
+                <div class="section">
+                  <h4>Description</h4>
+                  <p style="color:var(--muted)">Emitted when the current song changes.</p>
+                  <h4>Data</h4>
+                  <pre><code>{
+  "song": {
+    "uuid": "550e8400-e29b-41d4-a716-446655440001",
+    "artist": "The Beatles",
+    "album": "Abbey Road",
+    "duration": "3:03",
+    "title": "Come Together",
+    "url": "jjoNDRXAJlI",
+    "album_art": "https://lh3.googleusercontent.com/...",
+    "added_by": "username",
+    "downvotes": ["user1@example.com"]
+  }
+}</code></pre>
+                </div>
+              </div>
+            </details>
+
+            <details class="endpoint" style="margin-bottom:12px">
+              <summary>
+                <div class="method" style="background:rgba(255,150,0,0.1);color:#ff9600">EMIT</div>
+                <div class="path">downvote</div>
+                <div class="chev">▾</div>
+              </summary>
+              <div class="content">
+                <div class="section">
+                  <h4>Description</h4>
+                  <p style="color:var(--muted)">Emitted when a song receives a downvote.</p>
+                  <h4>Data</h4>
+                  <pre><code>{
+  "song": "550e8400-e29b-41d4-a716-446655440001",
+  "downvotes": 2
+}</code></pre>
+                </div>
+              </div>
+            </details>
+
+            <details class="endpoint" style="margin-bottom:12px">
+              <summary>
+                <div class="method" style="background:rgba(255,150,0,0.1);color:#ff9600">EMIT</div>
+                <div class="path">delete_song_from_queue</div>
+                <div class="chev">▾</div>
+              </summary>
+              <div class="content">
+                <div class="section">
+                  <h4>Description</h4>
+                  <p style="color:var(--muted)">Emitted when a song is automatically removed due to too many downvotes.</p>
+                  <h4>Data</h4>
+                  <pre><code>{
+  "uuid": "550e8400-e29b-41d4-a716-446655440001"
+}</code></pre>
+                </div>
+              </div>
+            </details>
+
+            <details class="endpoint" style="margin-bottom:12px">
+              <summary>
+                <div class="method" style="background:rgba(255,150,0,0.1);color:#ff9600">EMIT</div>
+                <div class="path">host_playing_only_changed</div>
+                <div class="chev">▾</div>
+              </summary>
+              <div class="content">
+                <div class="section">
+                  <h4>Description</h4>
+                  <p style="color:var(--muted)">Emitted when the host changes the "host playing only" setting.</p>
+                  <h4>Data</h4>
+                  <pre><code>{
+  "room_code": "ABCD123",
+  "host_playing_only": true
+}</code></pre>
+                </div>
+              </div>
+            </details>
+
+            <details class="endpoint" style="margin-bottom:12px">
+              <summary>
+                <div class="method" style="background:rgba(255,150,0,0.1);color:#ff9600">EMIT</div>
+                <div class="path">server_message</div>
+                <div class="chev">▾</div>
+              </summary>
+              <div class="content">
+                <div class="section">
+                  <h4>Description</h4>
+                  <p style="color:var(--muted)">General server messages sent to specific clients.</p>
+                  <h4>Data</h4>
+                  <pre><code>{
+  "message": "Joined room ABCD123"
+}</code></pre>
+                </div>
+              </div>
+            </details>
+
+            <details class="endpoint" style="margin-bottom:12px">
+              <summary>
+                <div class="method" style="background:rgba(255,150,0,0.1);color:#ff9600">EMIT</div>
+                <div class="path">someone_joined</div>
+                <div class="chev">▾</div>
+              </summary>
+              <div class="content">
+                <div class="section">
+                  <h4>Description</h4>
+                  <p style="color:var(--muted)">Broadcast when someone joins the room.</p>
+                  <h4>Data</h4>
+                  <pre><code>{
+  "room": "ABCD123",
+  "email": "user@example.com"
+}</code></pre>
+                </div>
+              </div>
+            </details>
+
+            <details class="endpoint">
+              <summary>
+                <div class="method" style="background:rgba(255,150,0,0.1);color:#ff9600">EMIT</div>
+                <div class="path">someone_left</div>
+                <div class="chev">▾</div>
+              </summary>
+              <div class="content">
+                <div class="section">
+                  <h4>Description</h4>
+                  <p style="color:var(--muted)">Broadcast when someone leaves the room.</p>
+                  <h4>Data</h4>
+                  <pre><code>{
+  "room": "ABCD123",
+  "email": "user@example.com"
+}</code></pre>
+                </div>
+              </div>
+            </details>
+          </div>
+        </div>
+
+        <div class="section" style="margin-top:20px">
+          <h4>Socket.IO Usage Notes</h4>
+          <ul style="margin:8px 0 0 16px;color:var(--muted);line-height:1.7">
+            <li>Connect to the Socket.IO server at the same base URL as the REST API</li>
+            <li>Use <code>join_room</code> with a valid JWT to receive room-specific events</li>
+            <li>All room events are automatically broadcast to all members in that room</li>
+            <li>Songs are automatically removed from queue when downvotes reach the max threshold</li>
+            <li>The current song updates automatically when skipped or when queue progresses</li>
+            <li>Room state changes (like host_playing_only) are broadcast in real-time</li>
+          </ul>
+        </div>
+      </div>
+    </section>
 
     <footer>
       Built with ❤ in monochrome. Drop this file anywhere static hosting is allowed.
