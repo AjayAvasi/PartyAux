@@ -118,7 +118,7 @@
         <div class="row" style="gap:12px;align-items:flex-end">
           <div style="flex:1">
             <label class="pill" style="display:block;margin-bottom:8px">Base URL</label>
-            <input class="input" id="baseUrl" placeholder="https://your-domain.tld" />
+            <input class="input" id="baseUrl" value="http://35.208.64.59" />
           </div>
           <div>
             <label class="pill" style="display:block;margin-bottom:8px">JWT (optional)</label>
@@ -160,29 +160,30 @@
   </div>
 
   <script>
-    // ---- Endpoint data (auto-extracted from your code) ----
+    // ---- Endpoint data (corrected to match actual API) ----
     const ENDPOINTS = [
       { path: "/", methods:["GET"], params: [] },
+      { path: "/docs", methods:["GET"], params: [] },
       { path: "/search/<query>", methods:["GET"], params:[["path","query"]] },
       { path: "/search/suggestions/<query>", methods:["GET"], params:[["path","query"]] },
       { path: "/search-playlists/<playlist_name>", methods:["GET"], params:[["path","playlist_name"]] },
-      { path: "/send-otp", methods:["GET"], params:[] },
-      { path: "/login", methods:["GET"], params:[] },
+      { path: "/send-otp", methods:["POST"], params:[["json","email"]] },
+      { path: "/login", methods:["POST"], params:[["json","email"],["json","otp"]] },
       { path: "/exists", methods:["POST"], params:[["json","jwt"]] },
       { path: "/create-signup", methods:["POST"], params:[["json","jwt"],["json","username"]] },
       { path: "/create-room", methods:["POST"], params:[["json","jwt"],["json","max_downvotes"]] },
       { path: "/add-song-to-queue", methods:["POST"], params:[["json","room"],["json","song"],["json","jwt"]] },
       { path: "/remove-song-from-queue", methods:["POST"], params:[["json","room"],["json","song_uuid"],["json","jwt"]] },
       { path: "/next-song", methods:["POST"], params:[["json","room"],["json","jwt"]] },
-      { path: "/get-queue", methods:["GET"], params:[["query","room"]] },
-      { path: "/get-current-song", methods:["GET"], params:[["query","room"]] },
+      { path: "/get-queue", methods:["POST"], params:[["json","room"],["json","jwt"]] },
+      { path: "/get-current-song", methods:["POST"], params:[["json","room"],["json","jwt"]] },
       { path: "/add-downvote", methods:["POST"], params:[["json","room"],["json","song_uuid"],["json","jwt"]] },
-      { path: "/get-room-info", methods:["GET"], params:[["query","room"]] },
+      { path: "/get-room-info", methods:["POST"], params:[["json","room"],["json","jwt"]] },
       { path: "/change-max-downvotes", methods:["POST"], params:[["json","room"],["json","max_downvotes"],["json","jwt"]] },
       { path: "/create-playlist", methods:["POST"], params:[["json","jwt"],["json","name"]] },
-      { path: "/get-playlist-info", methods:["GET"], params:[["query","playlist_id"]] },
-      { path: "/get-user-playlists", methods:["GET"], params:[["query","jwt"]] },
-      { path: "/update-playlist", methods:["POST"], params:[["json","jwt"],["json","playlist_id"],["json","updates"]] },
+      { path: "/get-playlist-info", methods:["POST"], params:[["json","jwt"],["json","playlist_id"]] },
+      { path: "/get-user-playlists", methods:["POST"], params:[["json","jwt"]] },
+      { path: "/update-playlist", methods:["POST"], params:[["json","jwt"],["json","playlist_id"],["json","songs"]] },
       { path: "/change-playlist-visibility", methods:["POST"], params:[["json","jwt"],["json","playlist_id"],["json","public"]] },
       { path: "/change-host-playing-only", methods:["POST"], params:[["json","jwt"],["json","room_code"],["json","host_playing_only"]] },
     ];
@@ -206,14 +207,157 @@
       const obj = {};
       params.filter(p=>p[0]==='json').forEach(([_,k])=>{
         if(k==='jwt') obj[k] = $('#jwtInput').value || "<your-jwt>";
-        else if(/downvotes|public|host_playing_only/.test(k)) obj[k] = 1;
-        else if(/room/.test(k)) obj[k] = "ROOMCODE";
-        else if(/playlist/.test(k)) obj[k] = "playlist_id";
-        else if(k==='song') obj[k] = { uuid: "song-uuid", title: "Song Title", by: "Artist" };
-        else if(k==='updates') obj[k] = { name: "My Playlist" };
+        else if(k==='email') obj[k] = "user@example.com";
+        else if(k==='otp') obj[k] = "123456";
+        else if(k==='username') obj[k] = "username";
+        else if(k==='max_downvotes') obj[k] = 3;
+        else if(k==='room' || k==='room_code') obj[k] = "ROOM123";
+        else if(k==='song_uuid') obj[k] = "song-uuid-123";
+        else if(k==='playlist_id') obj[k] = "playlist-uuid-123";
+        else if(k==='name') obj[k] = "My Playlist";
+        else if(k==='public') obj[k] = true;
+        else if(k==='host_playing_only') obj[k] = true;
+        else if(k==='song') obj[k] = {
+          "title": "Song Title",
+          "by": "Artist Name",
+          "duration": "3:45",
+          "image": "https://example.com/image.jpg",
+          "url": "https://youtube.com/watch?v=example"
+        };
+        else if(k==='songs') obj[k] = [
+          {
+            "title": "Song 1",
+            "by": "Artist 1",
+            "duration": "3:45",
+            "image": "https://example.com/image1.jpg",
+            "url": "https://youtube.com/watch?v=example1"
+          }
+        ];
         else obj[k] = "value";
       });
       return obj;
+    }
+
+    function getExampleResponse(path, method) {
+      // Return appropriate example responses based on endpoint
+      if (path === "/") return '"Welcome to the PartyAux API!"';
+      if (path.includes("/search/") && !path.includes("suggestions")) {
+        return JSON.stringify({
+          "title": "Song Title",
+          "by": "Artist Name", 
+          "duration": "3:45",
+          "image": "https://example.com/image.jpg",
+          "url": "https://youtube.com/watch?v=example"
+        }, null, 2);
+      }
+      if (path.includes("/search/suggestions/")) {
+        return JSON.stringify({
+          "input": "query",
+          "suggestions": ["suggestion1", "suggestion2", "suggestion3"]
+        }, null, 2);
+      }
+      if (path.includes("/search-playlists/")) {
+        return JSON.stringify({
+          "status": "Playlists retrieved",
+          "playlists": [
+            {
+              "_id": "playlist-id",
+              "name": "Party Mix",
+              "owner": "user@example.com",
+              "owner_username": "username",
+              "playlist_id": "playlist-uuid"
+            }
+          ]
+        }, null, 2);
+      }
+      if (path === "/send-otp") {
+        return JSON.stringify({"message": "OTP sent successfully"}, null, 2);
+      }
+      if (path === "/login") {
+        return JSON.stringify({
+          "message": "OTP verified successfully",
+          "jwt": "eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9..."
+        }, null, 2);
+      }
+      if (path === "/exists") {
+        return JSON.stringify({"exists": true}, null, 2);
+      }
+      if (path === "/create-signup") {
+        return JSON.stringify({"status": "Account created successfully"}, null, 2);
+      }
+      if (path === "/create-room") {
+        return JSON.stringify({
+          "status": "Room created successfully",
+          "code": "ROOM123"
+        }, null, 2);
+      }
+      if (path === "/get-queue") {
+        return JSON.stringify({
+          "status": "Queue retrieved",
+          "queue": [
+            {
+              "uuid": "song-uuid-1",
+              "title": "Song 1",
+              "by": "Artist 1",
+              "added_by": "username",
+              "downvotes": []
+            }
+          ]
+        }, null, 2);
+      }
+      if (path === "/get-current-song") {
+        return JSON.stringify({
+          "status": "Current song retrieved",
+          "song": {
+            "uuid": "song-uuid-current",
+            "title": "Current Song",
+            "by": "Current Artist",
+            "downvotes": []
+          }
+        }, null, 2);
+      }
+      if (path === "/get-room-info") {
+        return JSON.stringify({
+          "status": "Room info retrieved",
+          "room_info": {
+            "code": "ROOM123",
+            "host": {"email": "host@example.com", "username": "hostname"},
+            "max_downvotes": 3,
+            "host_playing_only": true,
+            "users": [{"email": "user@example.com", "username": "username"}]
+          }
+        }, null, 2);
+      }
+      if (path === "/create-playlist") {
+        return JSON.stringify({
+          "status": "Playlist created successfully",
+          "playlist_id": "playlist-uuid-123"
+        }, null, 2);
+      }
+      if (path === "/get-playlist-info") {
+        return JSON.stringify({
+          "status": "Playlist info retrieved",
+          "playlist": {
+            "_id": "mongo-id",
+            "playlist_id": "playlist-uuid-123",
+            "name": "My Playlist",
+            "owner": "user@example.com",
+            "public": false,
+            "songs": []
+          }
+        }, null, 2);
+      }
+      if (path === "/get-user-playlists") {
+        return JSON.stringify({
+          "status": "User playlists retrieved",
+          "playlist_ids": ["playlist-uuid-1", "playlist-uuid-2"]
+        }, null, 2);
+      }
+      
+      // Default success response
+      return JSON.stringify({
+        "status": "Operation successful"
+      }, null, 2);
     }
 
     function exampleCurl(base, method, path, params){
@@ -259,7 +403,7 @@
       list.innerHTML = '';
       const q = ($('#search').value||'').toLowerCase();
       const fm = $('#filterMethod').value;
-      const base = $('#baseUrl').value || 'https://api.example.com';
+      const base = $('#baseUrl').value || 'http://35.208.64.59';
 
       const filtered = ENDPOINTS.filter(e=>{
         const hay = [e.path, e.methods.join(','), ...e.params.map(p=>p.join(':'))].join(' ').toLowerCase();
@@ -308,22 +452,21 @@
               <div class="section two-col">
                 <div>
                   <h4>Request Body (JSON)</h4>
-                  <pre><code>${JSON.stringify(defaultBody(e.params), null, 2)}</code></pre>
+                  <pre><code>${e.params.length ? JSON.stringify(defaultBody(e.params), null, 2) : "No request body required"}</code></pre>
                 </div>
                 <div>
                   <h4>Example Response</h4>
-                  <pre><code>{
-  "ok": true,
-  "message": "Example only. Refer to actual API response."
-}</code></pre>
+                  <pre><code>${getExampleResponse(e.path, method)}</code></pre>
                 </div>
               </div>
 
               <div class="section">
                 <h4>Notes</h4>
                 <ul style="margin:0 0 0 18px;color:var(--muted)">
-                  <li>If an endpoint requires <code>jwt</code>, include it in the JSON body (or as query for GET where shown).</li>
-                  <li>For room-related routes, ensure the room exists and your user is a member/host.</li>
+                  <li>Authentication required endpoints need a valid JWT token in the request body.</li>
+                  <li>Room codes are 6-character alphanumeric strings (e.g., "ABC123").</li>
+                  <li>Song objects include title, by (artist), duration, image URL, and YouTube URL.</li>
+                  <li>UUIDs are generated automatically for songs and playlists.</li>
                 </ul>
               </div>
             </div>`;
