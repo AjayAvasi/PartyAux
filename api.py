@@ -290,6 +290,28 @@ def create_playlist():
     else:
         return jsonify({"status": "Playlist creation failed"}), 500
 
+@app.post('/delete-playlist')
+def delete_playlist():
+    if not request.json:
+        return jsonify({"message": "No JSON data provided"}), 400
+    jwt_token = request.json.get('jwt')
+    playlist_id = request.json.get('playlist_id')
+    if not jwt_token:
+        return jsonify({"message": "JWT token required"}), 401
+    
+    try:
+        email = jwt.decode(jwt_token, os.getenv('JWT_SECRET', 'secret'), algorithms=[os.getenv('JWT_ALGORITHM', 'HS256')])["email"]
+    except jwt.InvalidTokenError:
+        return jsonify({"message": "Invalid JWT token"}), 401
+    if not playlist_id:
+        return jsonify({"message": "Playlist ID required"}), 400
+
+    if db.delete_playlist(email, playlist_id):
+        return jsonify({"status": "Playlist deleted successfully"}), 200
+    else:
+        return jsonify({"status": "Playlist deletion failed"}), 500
+
+
 @app.post('/get-playlist-info')
 def get_playlist_info():
     if not request.json:

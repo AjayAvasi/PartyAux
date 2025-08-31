@@ -248,6 +248,15 @@ def create_playlist(name, email):
     create_document({"playlist_id": playlist_id, "name": name, "owner": email, "owner_username": owner_username, "songs": [], "public": False}, "Playlists")
     return playlist_id
 
+def delete_playlist(email, playlist_id):
+    playlist = get_playlist_info(playlist_id)
+    if not playlist:
+        return False
+    if email != playlist["owner"]:
+        return False
+    delete_document("Playlists", {"playlist_id": playlist_id, "owner": email})
+    return True
+
 def get_playlist_info(playlist_id):
     return get_document("Playlists", {"playlist_id": playlist_id})
 

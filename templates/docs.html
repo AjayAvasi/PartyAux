@@ -518,6 +518,7 @@ socket.on('current_song', (data) => {
       { path: "/get-room-info", methods:["POST"], params:[["json","room"],["json","jwt"]] },
       { path: "/change-max-downvotes", methods:["POST"], params:[["json","room"],["json","max_downvotes"],["json","jwt"]] },
       { path: "/create-playlist", methods:["POST"], params:[["json","jwt"],["json","name"]] },
+      { path: "/delete-playlist", methods:["POST"], params:[["json","jwt"],["json","playlist_id"]] },
       { path: "/get-playlist-info", methods:["POST"], params:[["json","jwt"],["json","playlist_id"]] },
       { path: "/get-user-playlists", methods:["POST"], params:[["json","jwt"]] },
       { path: "/update-playlist", methods:["POST"], params:[["json","jwt"],["json","playlist_id"],["json","songs"]] },
@@ -712,6 +713,9 @@ socket.on('current_song', (data) => {
           "status": "Playlist created successfully",
           "playlist_id": "550e8400-e29b-41d4-a716-446655440000"
         }, null, 2);
+      }
+      if (path === "/delete-playlist") {
+        return JSON.stringify({"status": "Playlist deleted successfully"}, null, 2);
       }
       if (path === "/get-playlist-info") {
         return JSON.stringify({
