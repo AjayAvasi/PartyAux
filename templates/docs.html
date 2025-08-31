@@ -505,6 +505,8 @@ socket.on('current_song', (data) => {
       { path: "/search/suggestions/<query>", methods:["GET"], params:[["path","query"]] },
       { path: "/search-playlists/<playlist_name>", methods:["GET"], params:[["path","playlist_name"]] },
       { path: "/send-otp", methods:["POST"], params:[["json","email"]] },
+      { path: "/send-account-deletion-otp", methods:["POST"], params:[["json","jwt"]] },
+      { path: "/delete-account", methods:["POST"], params:[["json","jwt"],["json","otp"]] },
       { path: "/login", methods:["POST"], params:[["json","email"],["json","otp"]] },
       { path: "/exists", methods:["POST"], params:[["json","jwt"]] },
       { path: "/create-signup", methods:["POST"], params:[["json","jwt"],["json","username"]] },
@@ -621,6 +623,12 @@ socket.on('current_song', (data) => {
       }
       if (path === "/send-otp") {
         return JSON.stringify({"message": "OTP sent successfully"}, null, 2);
+      }
+      if (path === "/send-account-deletion-otp") {
+        return JSON.stringify({"message": "Account deletion OTP sent successfully"}, null, 2);
+      }
+      if (path === "/delete-account") {
+        return JSON.stringify({"message": "Account deleted successfully"}, null, 2);
       }
       if (path === "/login") {
         return JSON.stringify({

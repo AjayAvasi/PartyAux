@@ -6,7 +6,7 @@ from datetime import datetime
 import db
 from dotenv import load_dotenv
 import os
-from email_templates import get_otp_email_html
+from email_templates import get_otp_email_html, get_account_deletion_otp_email_html
 
 # Load environment variables
 load_dotenv()
@@ -37,6 +37,11 @@ def send_email(email, subject, body):
 def send_otp(email, otp):
     subject = "Your PartyAux Login OTP Code"
     body = get_otp_email_html(otp)
+    send_email(email, subject, body)
+
+def send_account_deletion_otp(email, otp):
+    subject = "Your PartyAux Account Deletion OTP Code"
+    body = get_account_deletion_otp_email_html(otp)
     send_email(email, subject, body)
 
 def create_jwt(email):

@@ -52,6 +52,10 @@ def delete_document(collection_name, query):
     collection = db[collection_name]
     collection.delete_one(query)
 
+def delete_documents(collection_name, query):
+    collection = db[collection_name]
+    collection.delete_many(query)
+
 def get_all_documents(collection_name):
     collection = db[collection_name]
     return collection.find()
@@ -92,6 +96,16 @@ def verify_otp(email, otp) -> bool:
 
 def create_account(email, username):
     create_document({"email": email, "username": username}, "AccountInfo")
+    return True
+
+def delete_account(email, otp):
+    if not verify_otp(email, otp):
+        return False
+    leave_room(email)
+    delete_document("AccountInfo", {"email": email})
+    delete_document("OTP", {"email": email})
+    delete_documents("Rooms", {"host": email})
+    delete_documents("Playlists", {"owner": email})
     return True
 
 def room_exists(code):

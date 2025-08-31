@@ -51,6 +51,35 @@ def send_otp():
     db.store_otp(email, otp)
     return jsonify({"message": "OTP sent successfully"}), 200
 
+@app.post('/send-account-deletion-otp')
+def send_account_deletion_otp():
+    if not request.json:
+        return jsonify({"message": "No JSON data provided"}), 400
+    jwt_token = request.json.get('jwt')
+    otp = generate_otp()
+    try:
+        email = jwt.decode(jwt_token, os.getenv('JWT_SECRET', 'your_jwt_secret_here'), algorithms=[os.getenv('JWT_ALGORITHM', 'HS256')])["email"]
+    except jwt.InvalidTokenError:
+        return jsonify({"message": "Invalid JWT token"}), 400
+    misc.send_account_deletion_otp(email, otp)
+    db.store_otp(email, otp)
+    return jsonify({"message": "Account deletion OTP sent successfully"}), 200
+
+@app.post('/delete-account')
+def delete_account():
+    if not request.json:
+        return jsonify({"message": "No JSON data provided"}), 400
+    jwt_token = request.json.get('jwt')
+    try:
+        email = jwt.decode(jwt_token, os.getenv('JWT_SECRET', 'your_jwt_secret_here'), algorithms=[os.getenv('JWT_ALGORITHM', 'HS256')])["email"]
+    except jwt.InvalidTokenError:
+        return jsonify({"message": "Invalid JWT token"}), 400
+    otp = request.json.get('otp')
+    if db.delete_account(email, otp):
+        return jsonify({"message": "Account deleted successfully"}), 200
+    else:
+        return jsonify({"message": "Invalid OTP"}), 400
+
 @app.post('/login')
 def login():
     if not request.json:
@@ -103,6 +132,8 @@ def signup():
         return jsonify({"status": "Account created successfully"}), 200
     else:
         return jsonify({"status": "Account creation failed"}), 200
+    
+
 
 @app.post('/create-room')
 def create_room_route():
