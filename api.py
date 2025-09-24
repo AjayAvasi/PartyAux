@@ -470,7 +470,7 @@ def change_host_playing_only():
         return jsonify({"message": "Host playing only flag required"}), 400
 
     if db.change_host_playing_only(room_code, host_playing_only, email):
-        emit('host_playing_only_changed', {'room_code': room_code, 'host_playing_only': host_playing_only}, room=room_code)
+        socketio.emit('host_playing_only_changed', {'room_code': room_code, 'host_playing_only': host_playing_only}, room=room_code)
         return jsonify({"status": "Host playing only changed successfully"}), 200
     else:
         return jsonify({"status": "Host playing only change failed or access denied"}), 403
