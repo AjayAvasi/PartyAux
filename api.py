@@ -4,6 +4,7 @@ from misc import generate_otp, create_jwt
 import misc
 import db
 import jwt
+import autoplay
 from flask_socketio import SocketIO, emit, join_room, leave_room
 from flask_cors import CORS
 from dotenv import load_dotenv
@@ -162,6 +163,11 @@ def add_song_to_queue():
     song = request.json.get('song')
     jwt_token = request.json.get('jwt')
     email = jwt.decode(jwt_token, os.getenv('JWT_SECRET', 'secret'), algorithms=[os.getenv('JWT_ALGORITHM', 'HS256')])["email"]
+    
+    room_data = db.get_document("Rooms", {"code": room})
+    if room_data and room_data.get("current_song") and room_data["current_song"].get("added_by") != "PartyAux Autoplay":
+        autoplay.record_transition(room_data["current_song"], song)
+    
     if db.add_song_to_queue(room, song, email):
         socketio.emit('add_song', {'song': song}, room=room)
         return jsonify({"status": "Song added to queue"}), 200
@@ -195,6 +201,53 @@ def remove_song_from_queue():
         return jsonify({"status": "Song removed from queue"}), 200
     else:
         return jsonify({"status": "Song removal failed"}), 200
+
+@app.post('/add-song-autoplay')
+def add_song_autoplay():
+    if not request.json:
+        return jsonify({"message": "No JSON data provided"}), 400
+    
+    jwt_token = request.json.get('jwt')
+    room = request.json.get('room')
+    last_song = request.json.get('last_song')
+    
+    if not jwt_token:
+        return jsonify({"message": "JWT token required"}), 401
+    
+    if not room:
+        return jsonify({"message": "Room code required"}), 400
+    
+    if not last_song:
+        return jsonify({"message": "Last song required"}), 400
+    
+    try:
+        email = jwt.decode(jwt_token, os.getenv('JWT_SECRET', 'secret'), algorithms=[os.getenv('JWT_ALGORITHM', 'HS256')])["email"]
+    except jwt.InvalidTokenError:
+        return jsonify({"message": "Invalid JWT token"}), 401
+    
+    autoplay_song = autoplay.get_autoplay_song(last_song)
+    if not autoplay_song:
+        return jsonify({"status": "No autoplay song found"}), 200
+    
+    autoplay_song["added_by"] = "PartyAux Autoplay"
+    autoplay_song["downvotes"] = []
+    from uuid import uuid4
+    autoplay_song["uuid"] = str(uuid4())
+    
+    room_data = db.get_document("Rooms", {"code": room})
+    if not room_data:
+        return jsonify({"status": "Room not found"}), 400
+    
+    if email not in room_data["users"]:
+        return jsonify({"status": "User not in room"}), 403
+    
+    if room_data["current_song"] == {}:
+        db.update_document("Rooms", {"code": room}, {"current_song": autoplay_song})
+    else:
+        db.add_to_array("Rooms", {"code": room}, {"queue": autoplay_song})
+    
+    socketio.emit('add_song', {'song': autoplay_song}, room=room)
+    return jsonify({"status": "Autoplay song added to queue", "song": autoplay_song}), 200
 
 @app.post('/next-song')
 def next_song():
